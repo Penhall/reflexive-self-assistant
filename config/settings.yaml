@@ -1,0 +1,11 @@
+llm:
+  model: "mistral-7b"
+  max_tokens: 1024
+
+graph:
+  backend: "neo4j"
+  host: "localhost"
+  port: 7687
+
+reflection:
+  frequency: 5  # ciclos

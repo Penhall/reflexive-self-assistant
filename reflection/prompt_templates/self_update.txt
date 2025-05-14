@@ -1,0 +1,2 @@
+Com base nos padrões identificados, atualize a autoimagem simbólica do agente.
+Inclua mudanças de estratégia ou comportamento.

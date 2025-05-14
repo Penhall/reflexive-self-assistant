@@ -1,0 +1,10 @@
+crewai
+llama-index
+langchain
+transformers
+sentence-transformers
+chromadb
+neo4j
+networkx
+python-dotenv
+pytest

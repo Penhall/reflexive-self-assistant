@@ -1,0 +1,2 @@
+Avalie os padrões comportamentais detectados nas últimas tarefas.
+Identifique decisões recorrentes, falhas e sugestões de melhoria.
