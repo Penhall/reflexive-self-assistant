@@ -1,0 +1,25 @@
+# Ignorar diretórios de ambiente virtual
+venv/
+.venv/
+
+# Ignorar arquivos de bytecode Python
+__pycache__/
+*.pyc
+
+# Ignorar arquivos de editor e IDE
+.vscode/
+.idea/
+
+# Ignorar arquivos de configuração com informações sensíveis
+**/.env*
+
+# Ignorar logs
+*.log
+
+# Ignorar relatórios de cobertura de teste
+.coverage
+htmlcov/
+
+# Ignorar artefatos de build
+dist/
+build/
