@@ -1,18 +1,18 @@
-# Perfil simbólico atual dos agentes
 CodeAgent:
-  predominant_pattern: null
-  consistency_level: Desconhecido
-  last_adaptation: null
-  traits: []
-
+  predominant_pattern: Implementação funcional
+  consistency_level: Alta
+  last_adaptation: '2025-05-17 11:06:51'
+  traits:
+  - Objetivo
 TestAgent:
-  predominant_pattern: null
-  consistency_level: Desconhecido
-  last_adaptation: null
-  traits: []
-
+  predominant_pattern: Cobertura de teste
+  consistency_level: Alta
+  last_adaptation: '2025-05-17 11:06:51'
+  traits:
+  - Analítico
 DocumentationAgent:
-  predominant_pattern: null
-  consistency_level: Desconhecido
-  last_adaptation: null
-  traits: []
+  predominant_pattern: Atualização documental
+  consistency_level: Alta
+  last_adaptation: '2025-05-17 11:06:51'
+  traits:
+  - Explicativo

@@ -8,3 +8,4 @@ neo4j
 networkx
 python-dotenv
 pytest
+PyYAML
