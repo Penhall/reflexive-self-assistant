@@ -1,5 +1,5 @@
 """
-Agente responsável por gerar documentação técnica.
+Agente responsável por gerar documentação a partir do código.
 """
 
 class DocumentationAgent:

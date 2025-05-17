@@ -2,6 +2,11 @@
 Módulo principal de execução do sistema multiagente reflexivo.
 """
 
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+
 from agents.code_agent import CodeAgent
 from agents.test_agent import TestAgent
 from agents.doc_agent import DocumentationAgent

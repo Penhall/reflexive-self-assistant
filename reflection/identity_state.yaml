@@ -1,0 +1,18 @@
+# Perfil simbólico atual dos agentes
+CodeAgent:
+  predominant_pattern: null
+  consistency_level: Desconhecido
+  last_adaptation: null
+  traits: []
+
+TestAgent:
+  predominant_pattern: null
+  consistency_level: Desconhecido
+  last_adaptation: null
+  traits: []
+
+DocumentationAgent:
+  predominant_pattern: null
+  consistency_level: Desconhecido
+  last_adaptation: null
+  traits: []

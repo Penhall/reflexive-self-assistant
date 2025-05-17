@@ -1,5 +1,5 @@
 """
-Agente responsável por gerar código com base nas instruções recebidas.
+Agente responsável por gerar código com base em instruções.
 """
 
 class CodeAgent:
@@ -7,6 +7,5 @@ class CodeAgent:
         self.latest_output = ""
 
     def execute_task(self, instruction):
-        # Simulação de geração de código
         self.latest_output = f"# Código gerado para: {instruction}"
         print(self.latest_output)

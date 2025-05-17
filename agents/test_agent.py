@@ -1,5 +1,5 @@
 """
-Agente responsável por gerar testes automatizados.
+Agente responsável por gerar testes com base no código fornecido.
 """
 
 class TestAgent:
