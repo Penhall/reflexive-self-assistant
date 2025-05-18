@@ -1,0 +1,27 @@
+# Memória simbólica de longo prazo dos agentes
+TestAgent:
+  ciclos_totais: 0
+  consistencia:
+    Alta: 0
+    Moderada: 0
+    Baixa: 0
+  traços_frequentes: []
+  marcos: []
+
+DocumentationAgent:
+  ciclos_totais: 0
+  consistencia:
+    Alta: 0
+    Moderada: 0
+    Baixa: 0
+  traços_frequentes: []
+  marcos: []
+
+CodeAgent:
+  ciclos_totais: 0
+  consistencia:
+    Alta: 0
+    Moderada: 0
+    Baixa: 0
+  traços_frequentes: []
+  marcos: []

@@ -1,0 +1,5 @@
+next_cycle:
+  CodeAgent: "Implementar função de login"
+  TestAgent: "Gerar testes padrão"
+  DocumentationAgent: "Documentar conforme padrão"
+timestamp: null
