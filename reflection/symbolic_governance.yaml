@@ -1,0 +1,10 @@
+governança_simbolica:
+  ciclo: 19
+  decisão: Rejeitada
+  justificativa: A maioria dos agentes considerou a proposta desalinhada.
+  proposta: Executar padrão simbólico alternativo ao atual
+  timestamp: '2025-05-19 00:12:09'
+  votos:
+    CodeAgent: Não - risco de desalinhamento
+    DocumentationAgent: Não - risco de desalinhamento
+    TestAgent: Não - risco de desalinhamento

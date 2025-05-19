@@ -1,7 +1,7 @@
 import schedule
 import time
 from datetime import datetime
-from core.main import run_project
+from core.main1 import run_project
 from pathlib import Path
 
 LOG_PATH = Path("logs/cycle_log.txt")
