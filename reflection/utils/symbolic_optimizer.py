@@ -26,22 +26,28 @@ class SymbolicOptimizer:
         eventos = self.timeline.get("linha_temporal", [])
         for e in eventos:
             identidade = e.get("identidade", "")
-            emocao = e.get("emoção", "").lower()
+            emocao = e.get("emoção", "")
             proposta = e.get("evento", "")
 
-            for parte in identidade.split(","):
-                parte = parte.strip().split(":")[-1].strip().lower()
-                score = self.score_emocao(emocao)
-                self.impacto[parte] += score
+            emocao_lower = emocao.lower() if emocao and isinstance(emocao, str) else ""
+            proposta_lower = proposta.lower() if proposta and isinstance(proposta, str) else ""
 
-            if "disruptivo" in proposta.lower():
-                self.impacto["padrão disruptivo"] += self.score_emocao(emocao)
-            elif "estabilidade" in proposta.lower():
-                self.impacto["estabilidade"] += self.score_emocao(emocao)
+            if identidade and isinstance(identidade, str):
+                for parte in identidade.split(","):
+                    parte = parte.strip().split(":")[-1].strip().lower()
+                    score = self.score_emocao(emocao_lower)
+                    self.impacto[parte] += score
+
+            if "disruptivo" in proposta_lower:
+                self.impacto["padrão disruptivo"] += self.score_emocao(emocao_lower)
+            elif "estabilidade" in proposta_lower:
+                self.impacto["estabilidade"] += self.score_emocao(emocao_lower)
 
         self.save_log()
 
     def score_emocao(self, e):
+        if not e or not isinstance(e, str):
+            return 0
         return {
             "confiante": 1,
             "curioso": 1,

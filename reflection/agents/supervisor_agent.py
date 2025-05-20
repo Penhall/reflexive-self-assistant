@@ -1,10 +1,11 @@
 import yaml
 from datetime import datetime
 from collections import Counter
-
-IDENTITY_STATE = "reflection/identity_state.yaml"
-MEMORY_LOG = "reflection/memory_log.yaml"
-INSIGHT_OUTPUT = "reflection/supervisor_insight.yaml"
+from config.paths import (
+    IDENTITY_STATE,
+    MEMORY_LOG,
+    SUPERVISOR_INSIGHT as INSIGHT_OUTPUT
+)
 
 class SupervisorAgent:
     def __init__(self):

@@ -29,12 +29,15 @@ class SymbolicClosure:
             return {}
 
     def flatten(self, d):
-        return {k.lower(): v for k, v in d.items()}
+        if not d or not isinstance(d, dict):
+            return {}
+        return {str(k).lower(): v for k, v in d.items()}
 
-    def summarize(self):
+    def summarize(self, cycles_completed=None):
         ciclos = len(self.timeline)
         emo = self.emotion.get("status", "neutro")
-        ident = max(self.identity.items(), key=lambda kv: self.impact.get(kv[1].lower(), 0))[1]
+        ident = max(self.identity.items(),
+                   key=lambda kv: self.impact.get(str(kv[1]).lower() if kv[1] else "", 0))[1]
         superado = "funcionalidade" if "funcionalidade" in self.impact and self.impact["funcionalidade"] <= 0 else None
         contrad = len(self.contradictions)
 

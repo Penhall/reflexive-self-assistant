@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from collections import Counter
 import pandas as pd
+from pathlib import Path
 
 st.set_page_config(page_title="Reflexive Self Dashboard", layout="wide")
 
@@ -104,3 +105,27 @@ st.caption("Última atualização: " + datetime.now().strftime("%Y-%m-%d %H:%M:%
 #  Gerar relatório completo
 if st.sidebar.button("📄 Gerar Relatório Completo"):
     st.system("python generate_report.py")
+    
+def exibir_legado_simbólico():
+    legacy_path = Path("reflection/symbolic_legacy.yaml")
+    if not legacy_path.exists():
+        st.warning("⚠️ Nenhum legado simbólico encontrado ainda.")
+        return
+
+    with legacy_path.open("r", encoding="utf-8") as f:
+        legado = yaml.safe_load(f).get("legado_simbólico", {})
+
+    st.markdown("## 🏁 Encerramento Simbólico do Sistema")
+
+    st.write(f"**🧠 Identidade final:** {legado.get('identidade_final', '---')}")
+    st.write(f"**🎭 Emoção final:** {legado.get('emoção_final', '---')}")
+    st.write(f"**🔁 Ciclos concluídos:** {legado.get('ciclos_concluídos', '---')}")
+    st.write(f"**🧩 Padrão superado:** {legado.get('padrão_superado') or 'Nenhum'}")
+    st.write(f"**⚖️ Contradições corrigidas:** {legado.get('contradições_corrigidas', 0)}")
+
+    st.markdown("### 📘 Legado Narrativo")
+    st.info(legado.get("narrativa", "Nenhuma narrativa disponível."))
+
+# Chamar a função no app principal
+if st.sidebar.checkbox("🧾 Ver Legado Simbólico"):
+    exibir_legado_simbólico()

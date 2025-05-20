@@ -1,10 +1,11 @@
 import yaml
 from datetime import datetime
-
-IDENTITY_FILE = "reflection/identity_state.yaml"
-MEMORY_FILE = "reflection/memory_log.yaml"
-INSIGHT_FILE = "reflection/supervisor_insight.yaml"
-OUTPUT_FILE = "reflection/self_narrative.yaml"
+from config.paths import (
+    IDENTITY_STATE as IDENTITY_FILE,
+    MEMORY_LOG as MEMORY_FILE,
+    SUPERVISOR_INSIGHT as INSIGHT_FILE,
+    SELF_NARRATIVE as OUTPUT_FILE
+)
 
 class SymbolicSelfNarrator:
     def __init__(self):

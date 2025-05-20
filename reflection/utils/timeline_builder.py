@@ -1,9 +1,9 @@
 import yaml
 from datetime import datetime
+from config.paths import IDENTITY_STATE as IDENTITY_FILE
+from config.paths import EMOTIONAL_STATE as EMOTION_FILE
+from config.paths import SYMBOLIC_TIMELINE as TIMELINE_FILE
 
-IDENTITY_FILE = "reflection/identity_state.yaml"
-EMOTION_FILE = "reflection/emotional_state.yaml"
-TIMELINE_FILE = "reflection/symbolic_timeline.yaml"
 
 class TimelineBuilder:
     def __init__(self):
