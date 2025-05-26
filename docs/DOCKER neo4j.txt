@@ -1,0 +1,1 @@
+docker run --name neo4j-reflexive -p7474:7474 -p7687:7687  -e NEO4J_AUTH=neo4j/abcd1234  neo4j:5

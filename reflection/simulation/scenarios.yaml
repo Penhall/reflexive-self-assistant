@@ -1,7 +1,0 @@
-scenarios:
-  - CodeAgent: "Refatorar função"
-    TestAgent: "Fallback simbólico"
-    DocumentationAgent: "Resumo técnico"
-  - CodeAgent: "Criar endpoint novo"
-    TestAgent: "Expandir testes"
-    DocumentationAgent: "Manual interativo"

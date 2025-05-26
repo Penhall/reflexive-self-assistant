@@ -1,0 +1,73 @@
+services:
+  # Neo4j Graph Database
+  neo4j:
+    image: neo4j:5.15
+    container_name: rsca-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/reflexive123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    restart: unless-stopped
+
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: rsca-chromadb
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+    volumes:
+      - chromadb_data:/chroma/chroma
+    restart: unless-stopped
+
+  # Ollama for Local LLMs
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rsca-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+
+  # RSCA Main Application
+  rsca-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rsca-main
+    ports:
+      - "8501:8501"  # Streamlit
+      - "8080:8080"  # API (futuro)
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=reflexive123
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    depends_on:
+      - neo4j
+      - chromadb
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  chromadb_data:
+  ollama_data:
