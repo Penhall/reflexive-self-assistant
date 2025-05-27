@@ -1,9 +1,10 @@
 import yaml
 from datetime import datetime
+import config.paths
 
 FILES = {
     "regeneration": "reflection/creative_regeneration.yaml",
-    "identity": str(IDENTITY_STATE),
+    "identity": str(config.paths.IDENTITY_STATE),
     "output": "reflection/symbolic_governance.yaml"
 }
 

@@ -43,7 +43,7 @@ services:
   # RSCA Main Application
   rsca-app:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: rsca-main
     ports:

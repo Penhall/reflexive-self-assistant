@@ -1,0 +1,27 @@
+TestAgent:
+  ciclos_totais: 33
+  consistencia:
+    Alta: 33
+    Moderada: 0
+    Baixa: 0
+  traços_frequentes:
+  - Analítico
+  marcos: []
+DocumentationAgent:
+  ciclos_totais: 33
+  consistencia:
+    Alta: 33
+    Moderada: 0
+    Baixa: 0
+  traços_frequentes:
+  - Explicativo
+  marcos: []
+CodeAgent:
+  ciclos_totais: 33
+  consistencia:
+    Alta: 31
+    Moderada: 2
+    Baixa: 0
+  traços_frequentes:
+  - Objetivo
+  marcos: []

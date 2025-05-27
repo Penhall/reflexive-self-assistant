@@ -1,43 +1,64 @@
 """
-Módulo principal de execução do sistema multiagente reflexivo com ciclos automáticos.
-Versão atualizada para nova estrutura de diretórios.
+Versão corrigida de core/main.py com imports e paths fixos
 """
 
 import sys
 from pathlib import Path
+
+# 1. Configurar o path ANTES de qualquer import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# 2. Importar config.paths com tratamento de erro
+try:
+    import config.paths as paths
+except ImportError as e:
+    print(f"Erro crítico: Não foi possível importar config.paths - {e}")
+    sys.exit(1)
+
 import yaml
 from time import sleep
 
-# Adicionar diretório raiz ao path
-sys.path.append(str(Path(__file__).parent.parent))
+# 3. Usar paths centralizados do config.paths
+PROJECT_ROOT = Path(paths.PROJECT_ROOT)
+REFLECTION_DIR = Path(paths.REFLECTION_DIR)
 
-from config.paths import (
-    IDENTITY_STATE,
-    SYMBOLIC_LEGACY,
-    MEMORY_LOG,
-    DIALOGUE_DECISION
-)
+# Garantir que diretórios existem
+def ensure_directories():
+    """Cria todos os diretórios necessários"""
+    required_dirs = [
+        paths.IDENTITY_STATE.parent,
+        paths.MEMORY_LOG.parent,
+        paths.EMOTIONAL_STATE.parent,
+        paths.SYMBOLIC_TIMELINE.parent,
+        paths.SUPERVISOR_INSIGHT.parent,
+        paths.LOGS_DIR,
+        paths.DATA_DIR,
+        paths.EXPORTS_DIR / "identities",
+        paths.EXPORTS_DIR / "reports"
+    ]
+    
+    for directory in required_dirs:
+        directory.mkdir(parents=True, exist_ok=True)
+
+# Executar setup
+ensure_directories()
 
 from core.agents.code_agent import CodeAgent
 from core.agents.test_agent import TestAgent
 from core.agents.doc_agent import DocumentationAgent
 from core.agents.reflection_agent import ReflectionAgent
 
-
 def handle_error(context: str, e: Exception):
     print(f"[Erro] {context}: {e}")
 
-
 def load_dialogue_decision():
-    decision_file = Path(DIALOGUE_DECISION)
-    if decision_file.exists():
-        with decision_file.open("r", encoding="utf-8") as f:
+    if paths.DIALOGUE_DECISION.exists():
+        with paths.DIALOGUE_DECISION.open("r", encoding="utf-8") as f:
             try:
                 return yaml.safe_load(f).get("decisão_dialogada", {}).get("resultado", "Mantida")
             except Exception:
                 return "Mantida"
     return "Mantida"
-
 
 def print_agent_profile(agent_name, profile):
     print(f"\n🧐 {agent_name}")
@@ -46,14 +67,13 @@ def print_agent_profile(agent_name, profile):
     print(f"   → Última adaptação: {profile.get('last_adaptation')}")
     print(f"   → Traços simbólicos: {', '.join(profile.get('traits', [])) or 'Nenhum'}")
 
-
 def run_cycle(cycle_number):
     print(f"\n==============================")
     print(f"🔁 Iniciando Ciclo Reflexivo {cycle_number + 1}")
     print(f"==============================")
 
     # Inicializar agentes
-    code_agent = CodeAgent()
+    code_agent = CodeAgent(use_mock=True)
     test_agent = TestAgent()
     doc_agent = DocumentationAgent()
     reflector = ReflectionAgent()
@@ -72,25 +92,51 @@ def run_cycle(cycle_number):
         from reflection.analysis.pattern_analyzer import SymbolicEvaluator
         evaluator = SymbolicEvaluator()
         evaluator.update_symbolic_identity([code_agent, test_agent, doc_agent])
-    except ImportError as e:
+    except Exception as e:
         handle_error("avaliação simbólica", e)
 
     # Carregar e exibir perfis
     try:
-        state_path = Path(IDENTITY_STATE)
-        if state_path.exists():
-            identity_state = yaml.safe_load(state_path.read_text(encoding="utf-8"))
+        if paths.IDENTITY_STATE.exists():
+            identity_state = yaml.safe_load(paths.IDENTITY_STATE.read_text(encoding="utf-8"))
             
-            # Atualizar memória simbólica
             try:
                 from memory.symbolic.symbolic_memory import SymbolicMemory
                 memory = SymbolicMemory()
                 memory.update_memory(identity_state)
             except ImportError:
-                pass  # Memória simbólica opcional
+                pass
             
             for agent_name in identity_state:
                 print_agent_profile(agent_name, identity_state[agent_name])
+        else:
+            print("📝 Criando arquivo de identidade inicial...")
+            initial_identity = {
+                "CodeAgent": {
+                    "predominant_pattern": "Execução padrão",
+                    "last_adaptation": "2025-05-25 20:00:00",
+                    "consistency_level": "Alta",
+                    "traits": ["Consistente", "Objetivo"]
+                },
+                "TestAgent": {
+                    "predominant_pattern": "Cobertura de teste",
+                    "last_adaptation": "2025-05-25 20:00:00",
+                    "consistency_level": "Alta",
+                    "traits": ["Analítico", "Consistente"]
+                },
+                "DocumentationAgent": {
+                    "predominant_pattern": "Atualização documental",
+                    "last_adaptation": "2025-05-25 20:00:00",
+                    "consistency_level": "Alta",
+                    "traits": ["Consistente", "Explicativo"]
+                }
+            }
+            
+            with paths.IDENTITY_STATE.open("w", encoding="utf-8") as f:
+                yaml.safe_dump(initial_identity, f, sort_keys=False, allow_unicode=True)
+            
+            print("✅ Arquivo de identidade criado!")
+            
     except Exception as e:
         handle_error("carregamento de perfis", e)
 
@@ -98,10 +144,7 @@ def run_cycle(cycle_number):
     reflexive_components = [
         ("supervisor simbólico", "reflection.analysis.supervisor_agent", "SupervisorAgent"),
         ("otimização simbólica", "reflection.analysis.performance_evaluator", "SymbolicOptimizer"),
-        ("autocorreção simbólica", "reflection.analysis.contradiction_checker", "SymbolicAutocorrector"),
-        ("verificação de contradições", "reflection.analysis.contradiction_checker", "ContradictionChecker"),
         ("diálogo simbólico", "reflection.symbolic.symbolic_dialogue", "SymbolicDialogue"),
-        ("decisão dialogada", "reflection.symbolic.dialogue_based_filter", "DialogueBasedFilter"),
     ]
 
     for component_name, module_path, class_name in reflexive_components:
@@ -114,27 +157,20 @@ def run_cycle(cycle_number):
                 component.evaluate_global_state()
             elif hasattr(component, 'evaluate'):
                 component.evaluate()
-            elif hasattr(component, 'apply_corrections'):
-                component.apply_corrections()
-            elif hasattr(component, 'detect_contradictions'):
-                component.detect_contradictions()
             elif hasattr(component, 'generate_dialogue'):
                 component.generate_dialogue()
-            elif hasattr(component, 'decide'):
-                component.decide()
                 
         except Exception as e:
             handle_error(component_name, e)
 
     # Encerramento simbólico (último ciclo)
-    if cycle_number == 11:  # 12º ciclo (0-indexed)
+    if cycle_number == 11:
         try:
             from reflection.symbolic.closure import SymbolicClosure
             closure = SymbolicClosure()
             closure.summarize(cycles_completed=cycle_number+1)
         except Exception as e:
             handle_error("encerramento simbólico", e)
-
 
 def run_project():
     """Executa o projeto completo com 12 ciclos"""
@@ -144,7 +180,7 @@ def run_project():
     for cycle in range(12):
         try:
             run_cycle(cycle)
-            sleep(1)  # Pequena pausa entre ciclos
+            sleep(1)
         except KeyboardInterrupt:
             print(f"\n⏹️ Execução interrompida pelo usuário no ciclo {cycle + 1}")
             break
@@ -153,7 +189,6 @@ def run_project():
             continue
     
     print("\n🏁 Execução concluída!")
-
 
 if __name__ == "__main__":
     run_project()

@@ -1,8 +1,9 @@
 import yaml
 from datetime import datetime
+import config.paths
 
-INSIGHT_PATH = str(SUPERVISOR_INSIGHT)
-MEMORY_PATH = str(MEMORY_LOG)
+INSIGHT_PATH = str(config.paths.SUPERVISOR_INSIGHT)
+MEMORY_PATH = str(config.paths.MEMORY_LOG)
 AGENDA_PATH = "reflection/symbolic_agenda.yaml"
 
 class StrategyPlanner:

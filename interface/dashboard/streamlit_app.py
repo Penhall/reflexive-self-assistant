@@ -5,6 +5,13 @@ from datetime import datetime
 from collections import Counter
 import pandas as pd
 from pathlib import Path
+import sys
+from pathlib import Path
+
+# Adicionar diretório raiz ao path do Python
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+from config.paths import IDENTITY_STATE, CYCLE_HISTORY
 
 st.set_page_config(page_title="Reflexive Self Dashboard", layout="wide")
 

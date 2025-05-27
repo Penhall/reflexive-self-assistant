@@ -1,11 +1,7 @@
 import yaml
 from datetime import datetime
 from collections import Counter
-from config.paths import (
-    IDENTITY_STATE,
-    MEMORY_LOG,
-    SUPERVISOR_INSIGHT as INSIGHT_OUTPUT
-)
+from config.paths import IDENTITY_STATE, MEMORY_LOG, SUPERVISOR_INSIGHT
 
 class SupervisorAgent:
     def __init__(self):
@@ -52,7 +48,7 @@ class SupervisorAgent:
         self.print_insight()
 
     def save_insight(self):
-        with open(INSIGHT_OUTPUT, "w", encoding="utf-8") as f:
+        with open(SUPERVISOR_INSIGHT, "w", encoding="utf-8") as f:
             yaml.safe_dump(self.insight, f, sort_keys=False, allow_unicode=True)
 
     def print_insight(self):

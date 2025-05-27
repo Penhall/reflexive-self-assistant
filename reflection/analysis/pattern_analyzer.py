@@ -6,9 +6,10 @@ import json
 import yaml
 from datetime import datetime
 from memory.graph_rag.graph_interface import GraphMemory
+import config.paths
 
-CYCLE_HISTORY_PATH = str(CYCLE_HISTORY)
-IDENTITY_STATE_PATH = str(IDENTITY_STATE)
+config.paths.CYCLE_HISTORY_PATH = str(config.paths.CYCLE_HISTORY)
+config.paths.IDENTITY_STATE_PATH = str(config.paths.IDENTITY_STATE)
 MAX_HISTORY = 5
 
 class SymbolicEvaluator:
@@ -78,18 +79,18 @@ class SymbolicEvaluator:
 
     def load_history(self):
         try:
-            with open(CYCLE_HISTORY_PATH, "r", encoding="utf-8") as f:
+            with open(config.paths.CYCLE_HISTORY_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return { "CodeAgent": [], "TestAgent": [], "DocumentationAgent": [] }
 
     def save_history(self, history):
-        with open(CYCLE_HISTORY_PATH, "w", encoding="utf-8") as f:
+        with open(config.paths.CYCLE_HISTORY_PATH, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
 
     def load_identity(self):
         try:
-            with open(IDENTITY_STATE_PATH, "r", encoding="utf-8") as f:
+            with open(config.paths.IDENTITY_STATE_PATH, "r", encoding="utf-8") as f:
                 identity = yaml.safe_load(f)
                 if not identity:
                     identity = {}
@@ -127,5 +128,5 @@ class SymbolicEvaluator:
             }
 
     def save_identity(self, identity):
-        with open(IDENTITY_STATE_PATH, "w", encoding="utf-8") as f:
+        with open(config.paths.IDENTITY_STATE_PATH, "w", encoding="utf-8") as f:
             yaml.safe_dump(identity, f, sort_keys=False, allow_unicode=True)

@@ -193,8 +193,11 @@ class CodeAgent:
         start_time = time.time()
         
         try:
-            # Criar arquivo temporário
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            # Criar arquivo temporário com encoding UTF-8
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
+                # Adicionar declaração de encoding UTF-8
+                if not code.startswith('# -*- coding: utf-8 -*-'):
+                    code = '# -*- coding: utf-8 -*-\n\n' + code
                 f.write(code)
                 temp_file = f.name
             

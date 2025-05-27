@@ -1,5 +1,6 @@
 import yaml
 from datetime import datetime
+from config.paths import MEMORY_LOG, EMOTIONAL_STATE
 
 MEMORY_FILE = str(MEMORY_LOG)
 SUPERVISOR_FILE = "reflection/supervisor_self_reflection.yaml"

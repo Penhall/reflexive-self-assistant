@@ -1,17 +1,17 @@
 {
   "CodeAgent": [
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional"
+  ],
+  "TestAgent": [
     "Execu\u00e7\u00e3o padr\u00e3o",
     "Execu\u00e7\u00e3o padr\u00e3o",
     "Execu\u00e7\u00e3o padr\u00e3o",
     "Execu\u00e7\u00e3o padr\u00e3o",
     "Execu\u00e7\u00e3o padr\u00e3o"
-  ],
-  "TestAgent": [
-    "Cobertura de teste",
-    "Cobertura de teste",
-    "Cobertura de teste",
-    "Cobertura de teste",
-    "Cobertura de teste"
   ],
   "DocumentationAgent": [
     "Atualiza\u00e7\u00e3o documental",

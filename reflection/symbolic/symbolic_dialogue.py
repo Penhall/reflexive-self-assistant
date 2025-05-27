@@ -1,5 +1,6 @@
 import yaml
 from datetime import datetime
+from config.paths import IDENTITY_STATE, SYMBOLIC_DIALOGUE
 
 FILES = {
     "identity": str(IDENTITY_STATE),

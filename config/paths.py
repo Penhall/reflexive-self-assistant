@@ -3,7 +3,9 @@ Paths centralizados para todos os arquivos do sistema.
 """
 
 from pathlib import Path
-from config.settings import PROJECT_ROOT
+
+# Detectar diretório raiz do projeto
+PROJECT_ROOT = Path(__file__).parent.parent
 
 # Diretórios base
 REFLECTION_DIR = PROJECT_ROOT / "reflection"
@@ -34,7 +36,7 @@ SYMBOLIC_AGENDA = REFLECTION_DIR / "state" / "governance" / "symbolic_agenda.yam
 
 # Diálogos e comunicação
 SYMBOLIC_DIALOGUE = REFLECTION_DIR / "symbolic" / "symbolic_dialogue.yaml"
-DIALOGUE_DECISION = REFLECTION_DIR / "symbolic" / "dialogue_decision.yaml"
+DIALOGUE_DECISION = REFLECTION_DIR / "state" / "dialogue_decision.yaml"
 
 # Análise e otimização
 SYMBOLIC_CONTRADICTIONS = REFLECTION_DIR / "analysis" / "symbolic_contradictions.yaml"
@@ -82,5 +84,5 @@ def ensure_directories():
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
 
-# Executar ao importar
+# Executar setup automaticamente ao importar
 ensure_directories()

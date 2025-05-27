@@ -1,10 +1,11 @@
 import yaml
 from datetime import datetime
+import config.paths
 
 FILES = {
     "timeline": "reflection/symbolic_timeline.yaml",
-    "emotion": str(EMOTIONAL_STATE),
-    "identity": str(IDENTITY_STATE),
+    "emotion": str(config.paths.EMOTIONAL_STATE),
+    "identity": str(config.paths.IDENTITY_STATE),
     "impact": "reflection/symbolic_impact_log.yaml",
     "contradictions": "reflection/symbolic_contradictions.yaml",
     "output_yaml": "reflection/symbolic_legacy.yaml",

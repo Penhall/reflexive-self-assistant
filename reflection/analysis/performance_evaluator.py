@@ -1,10 +1,11 @@
 import yaml
 from collections import defaultdict
 from datetime import datetime
+import config.paths
 
 FILES = {
     "timeline": "reflection/symbolic_timeline.yaml",
-    "emotion": str(EMOTIONAL_STATE),
+    "emotion": str(config.paths.EMOTIONAL_STATE),
     "governance": "reflection/symbolic_governance.yaml",
     "output": "reflection/symbolic_impact_log.yaml"
 }

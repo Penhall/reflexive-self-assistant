@@ -1,7 +1,7 @@
 import yaml
 from datetime import datetime
-from config.paths import IDENTITY_STATE as IDENTITY_FILE
-from config.paths import EMOTIONAL_STATE as EMOTION_FILE
+from config.paths import config.paths.IDENTITY_STATE as IDENTITY_FILE
+from config.paths import config.paths.EMOTIONAL_STATE as EMOTION_FILE
 from config.paths import SYMBOLIC_TIMELINE as TIMELINE_FILE
 
 
