@@ -7,7 +7,7 @@ services:
       - "7474:7474"  # HTTP
       - "7687:7687"  # Bolt
     environment:
-      - NEO4J_AUTH=neo4j/reflexive123
+      - NEO4J_AUTH=neo4j/abcd1234
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*
     volumes:
@@ -39,11 +39,45 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
+    # Adicionar healthcheck para aguardar Ollama estar pronto
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Service para instalar modelos automaticamente
+  ollama-setup:
+    image: ollama/ollama:latest
+    container_name: rsca-ollama-setup
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ./scripts:/scripts
+    command: >
+      sh -c "
+        echo 'Aguardando Ollama estar pronto...' &&
+        sleep 10 &&
+        echo 'Instalando modelos...' &&
+        ollama --host http://ollama:11434 pull llama3:8b &&
+        echo 'llama3:8b instalado!' &&
+        ollama --host http://ollama:11434 pull codellama:7b &&
+        echo 'codellama:7b instalado!' &&
+        ollama --host http://ollama:11434 pull codellama:13b &&
+        echo 'codellama:13b instalado!' &&
+        echo 'Todos os modelos instalados com sucesso!' &&
+        ollama --host http://ollama:11434 list
+      "
+    restart: "no"  # Executar apenas uma vez
 
   # RSCA Main Application
   rsca-app:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     container_name: rsca-main
     ports:
@@ -52,7 +86,7 @@ services:
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=reflexive123
+      - NEO4J_PASSWORD=abcd1234
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
       - OLLAMA_HOST=http://ollama:11434
@@ -64,6 +98,7 @@ services:
       - neo4j
       - chromadb
       - ollama
+      - ollama-setup  # Aguardar modelos serem instalados
     restart: unless-stopped
 
 volumes:

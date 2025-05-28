@@ -1,5 +1,5 @@
 # Configuração para CodeLlama
-MODEL_NAME = "codellama:8b" 
+MODEL_NAME = "codellama:7b" 
 CONTEXT_LENGTH = 4096
 TEMPERATURE = 0.1
 TOP_P = 0.9

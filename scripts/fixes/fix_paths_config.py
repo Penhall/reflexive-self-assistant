@@ -97,9 +97,9 @@ LLM_CONFIG = {
     "ollama": {
         "host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
         "models": {
-            "code": os.getenv("CODE_MODEL", "codellama:8b"),
+            "code": os.getenv("CODE_MODEL", "codellama:7b"),
             "general": os.getenv("GENERAL_MODEL", "llama3:8b"),
-            "analysis": os.getenv("ANALYSIS_MODEL", "llama3:15b")
+            "analysis": os.getenv("ANALYSIS_MODEL", "codellama:13b")
         }
     }
 }
@@ -249,7 +249,7 @@ ensure_directories()
         
         # Configuração do CodeLlama
         codellama_config = '''# Configuração para CodeLlama
-MODEL_NAME = "codellama:8b" 
+MODEL_NAME = "codellama:7b" 
 CONTEXT_LENGTH = 4096
 TEMPERATURE = 0.1
 TOP_P = 0.9
@@ -308,9 +308,9 @@ Documentation:
         
         env_example = '''# Configurações de LLM
 OLLAMA_HOST=http://localhost:11434
-CODE_MODEL=codellama:8b
+CODE_MODEL=codellama:7b
 GENERAL_MODEL=llama3:8b
-ANALYSIS_MODEL=llama3:15b
+ANALYSIS_MODEL=codellama:13b
 
 # Configurações de Banco de Dados
 NEO4J_URI=bolt://localhost:7687

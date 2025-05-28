@@ -498,8 +498,8 @@ reflexao_components = {
   ```python
   # Instalar e configurar modelos
   ollama pull llama3:8b
-  ollama pull codellama:8b
-  ollama pull llama3:15b
+  ollama pull codellama:7b
+  ollama pull codellama:13b
   ```
 
 - [ ] **Schema do banco de grafos**

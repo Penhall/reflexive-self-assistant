@@ -17,9 +17,9 @@ LLM_CONFIG = {
     "ollama": {
         "host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
         "models": {
-            "code": os.getenv("CODE_MODEL", "codellama:8b"),
+            "code": os.getenv("CODE_MODEL", "codellama:7b"),
             "general": os.getenv("GENERAL_MODEL", "llama3:8b"),
-            "analysis": os.getenv("ANALYSIS_MODEL", "llama3:15b")
+            "analysis": os.getenv("ANALYSIS_MODEL", "codellama:13b")
         }
     }
 }

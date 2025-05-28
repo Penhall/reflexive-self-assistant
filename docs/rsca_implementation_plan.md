@@ -139,9 +139,9 @@ reflexive-self-assistant/
 class LLMManager:
     def __init__(self):
         self.models = {
-            "code": "codellama:8b",
+            "code": "codellama:7b",
             "general": "llama3:8b", 
-            "analysis": "llama3:15b"
+            "analysis": "codellama:13b"
         }
     
     def generate(self, prompt, model_type="general", **kwargs):
