@@ -1,34 +1,39 @@
+# infrastructure/docker-compose.yml
+version: '3.8'
+
 services:
-  # Neo4j Graph Database
-  neo4j:
-    image: neo4j:5.15
-    container_name: rsca-neo4j
+  # Sistema RSCA Principal (preservando atual)
+  rsca-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rsca-main
     ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
+      - "8501:8501"  # Streamlit Dashboard
+      - "8080:8080"  # API REST (futuro)
     environment:
-      - NEO4J_AUTH=neo4j/abcd1234
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      # Configurações atuais preservadas
+      - OLLAMA_HOST=http://ollama:11434
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=rsca_secure_2025
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      # Modo híbrido: YAML + GraphRAG
+      - STORAGE_MODE=hybrid
+      - ENABLE_GRAPHRAG=true
     volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
+      - ./data:/app/data
+      - ./logs:/app/logs  
+      - ./reflection:/app/reflection  # Preservar estados YAML
+      - ./exports:/app/exports
+    depends_on:
+      - neo4j
+      - chromadb
+      - ollama
     restart: unless-stopped
 
-  # ChromaDB Vector Database
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: rsca-chromadb
-    ports:
-      - "8000:8000"
-    environment:
-      - CHROMA_SERVER_HOST=0.0.0.0
-      - CHROMA_SERVER_PORT=8000
-    volumes:
-      - chromadb_data:/chroma/chroma
-    restart: unless-stopped
-
-  # Ollama for Local LLMs
+  # Ollama para LLMs Locais (configuração atual preservada)
   ollama:
     image: ollama/ollama:latest
     container_name: rsca-ollama
@@ -39,66 +44,40 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
-    # Adicionar healthcheck para aguardar Ollama estar pronto
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
-  # Service para instalar modelos automaticamente
-  ollama-setup:
-    image: ollama/ollama:latest
-    container_name: rsca-ollama-setup
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-    volumes:
-      - ./scripts:/scripts
-    command: >
-      sh -c "
-        echo 'Aguardando Ollama estar pronto...' &&
-        sleep 10 &&
-        echo 'Instalando modelos...' &&
-        ollama --host http://ollama:11434 pull llama3:8b &&
-        echo 'llama3:8b instalado!' &&
-        ollama --host http://ollama:11434 pull codellama:7b &&
-        echo 'codellama:7b instalado!' &&
-        ollama --host http://ollama:11434 pull codellama:13b &&
-        echo 'codellama:13b instalado!' &&
-        echo 'Todos os modelos instalados com sucesso!' &&
-        ollama --host http://ollama:11434 list
-      "
-    restart: "no"  # Executar apenas uma vez
-
-  # RSCA Main Application
-  rsca-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: rsca-main
+  # Neo4j para GraphRAG (NOVO)
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: rsca-neo4j
     ports:
-      - "8501:8501"  # Streamlit
-      - "8080:8080"  # API (futuro)
+      - "7474:7474"  # Browser
+      - "7687:7687"  # Bolt
     environment:
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=abcd1234
-      - CHROMADB_HOST=chromadb
-      - CHROMADB_PORT=8000
-      - OLLAMA_HOST=http://ollama:11434
+      - NEO4J_AUTH=neo4j/rsca_secure_2025
+      - NEO4J_PLUGINS=["apoc", "gds"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_memory_heap_initial_size=512m
+      - NEO4J_dbms_memory_heap_max_size=2g
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./exports:/app/exports
-    depends_on:
-      - neo4j
-      - chromadb
-      - ollama
-      - ollama-setup  # Aguardar modelos serem instalados
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./infrastructure/neo4j/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  # ChromaDB para Vector Search (NOVO)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: rsca-chromadb
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenAuthCredentialsProvider
+      - CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER=X-Chroma-Token
+      - CHROMA_AUTH_TOKEN_SECRET=rsca_chroma_secret_2025
+    volumes:
+      - chromadb_data:/chroma/chroma
     restart: unless-stopped
 
 volumes:
