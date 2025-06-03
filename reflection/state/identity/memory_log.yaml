@@ -17,9 +17,9 @@ DocumentationAgent:
   - Explicativo
   marcos: []
 CodeAgent:
-  ciclos_totais: 66
+  ciclos_totais: 199
   consistencia:
-    Alta: 33
+    Alta: 166
     Moderada: 33
     Baixa: 0
   traços_frequentes:

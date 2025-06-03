@@ -1,0 +1,21 @@
+CodeAgent:
+  predominant_pattern: Execução padrão
+  last_adaptation: '2025-05-25 20:00:00'
+  consistency_level: Alta
+  traits:
+  - Consistente
+  - Objetivo
+TestAgent:
+  predominant_pattern: Cobertura de teste
+  last_adaptation: '2025-05-25 20:00:00'
+  consistency_level: Alta
+  traits:
+  - Analítico
+  - Consistente
+DocumentationAgent:
+  predominant_pattern: Atualização documental
+  last_adaptation: '2025-05-25 20:00:00'
+  consistency_level: Alta
+  traits:
+  - Consistente
+  - Explicativo

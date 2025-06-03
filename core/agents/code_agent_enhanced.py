@@ -1,4 +1,3 @@
-# core/agents/code_agent_enhanced.py
 """
 CodeAgent Enhanced - Integra GraphRAG mantendo compatibilidade total
 Evolução do CodeAgent atual com capacidades de memória experiencial
@@ -33,6 +32,9 @@ class CodeResult:
     experience_id: Optional[str] = None
     similar_experiences_used: List[Dict] = None
     learning_applied: bool = False
+    # Campos para métricas de performance
+    context_tokens: int = 0
+    response_tokens: int = 0
 
 
 class CodeAgentEnhanced:
@@ -101,6 +103,10 @@ class CodeAgentEnhanced:
         # Processar e validar código gerado (lógica atual preservada)
         code_result = self._process_generated_code(llm_response.content, instruction)
         
+        # Adicionar tokens de contexto e resposta do LLM ao CodeResult
+        code_result.context_tokens = llm_response.context_tokens
+        code_result.response_tokens = llm_response.response_tokens
+
         # NOVA CAPACIDADE: Armazenar experiência no GraphRAG
         if self.enable_learning and self.memory:
             experience_id = self._store_experience(instruction, code_result, similar_experiences)
@@ -203,7 +209,9 @@ class CodeAgentEnhanced:
                     "adaptation_mode": self.adaptation_mode,
                     "similar_experiences_count": len(similar_experiences),
                     "learning_applied": len(similar_experiences) > 0,
-                    "execution_time": result.execution_time
+                    "execution_time": result.execution_time,
+                    "context_tokens": result.context_tokens,
+                    "response_tokens": result.response_tokens
                 },
                 yaml_cycle=len(self.generation_history) + 1
             )
@@ -381,7 +389,7 @@ class CodeAgentEnhanced:
         start_time = time.time()
         
         try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
                 f.write(code)
                 temp_file = f.name
             
@@ -389,7 +397,8 @@ class CodeAgentEnhanced:
                 ['python', temp_file],
                 capture_output=True,
                 text=True,
-                timeout=PERFORMANCE_CONFIG["timeout_seconds"]
+                timeout=PERFORMANCE_CONFIG["timeout_seconds"],
+                encoding='utf-8' # Adicionado encoding para subprocess
             )
             
             execution_time = time.time() - start_time
@@ -442,7 +451,9 @@ if __name__ == "__main__":
             "execution_time": result.execution_time,
             "adaptation_mode": self.adaptation_mode,
             "experience_id": getattr(result, 'experience_id', None),
-            "learning_applied": getattr(result, 'learning_applied', False)
+            "learning_applied": getattr(result, 'learning_applied', False),
+            "context_tokens": result.context_tokens,
+            "response_tokens": result.response_tokens
         })
         
         # Manter apenas últimas 20 gerações
@@ -483,6 +494,15 @@ if __name__ == "__main__":
             "experiences_stored": len([h for h in self.generation_history if h.get("experience_id")]),
             "graphrag_enabled": self.enable_learning
         }
+        
+        # Adicionar métricas de tokens se disponíveis
+        if all("context_tokens" in h and "response_tokens" in h for h in self.generation_history):
+            total_context_tokens = sum(h["context_tokens"] for h in self.generation_history)
+            total_response_tokens = sum(h["response_tokens"] for h in self.generation_history)
+            stats["total_context_tokens"] = total_context_tokens
+            stats["total_response_tokens"] = total_response_tokens
+            stats["avg_context_tokens"] = total_context_tokens / len(self.generation_history)
+            stats["avg_response_tokens"] = total_response_tokens / len(self.generation_history)
         
         return stats
     

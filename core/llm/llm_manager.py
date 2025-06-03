@@ -21,6 +21,8 @@ class LLMResponse:
     generation_time: float
     success: bool
     error: Optional[str] = None
+    context_tokens: int = 0  # Adicionado
+    response_tokens: int = 0 # Adicionado
 
 class OllamaClient:
     """Cliente para comunicação com Ollama"""
@@ -86,12 +88,19 @@ class OllamaClient:
                     data = response.json()
                     generation_time = time.time() - start_time
                     
+                    # Usar prompt_eval_count para context_tokens e eval_count para response_tokens
+                    context_tokens = data.get("prompt_eval_count", 0)
+                    response_tokens = data.get("eval_count", 0)
+                    total_tokens_used = context_tokens + response_tokens # Ou apenas eval_count se for o total
+                    
                     return LLMResponse(
                         content=data.get("response", ""),
                         model=model,
-                        tokens_used=data.get("eval_count", 0),
+                        tokens_used=total_tokens_used, # Manter para compatibilidade, mas usar os novos campos
                         generation_time=generation_time,
-                        success=True
+                        success=True,
+                        context_tokens=context_tokens, # Passar os novos campos
+                        response_tokens=response_tokens # Passar os novos campos
                     )
                 
             except Exception as e:
@@ -105,7 +114,9 @@ class OllamaClient:
             tokens_used=0,
             generation_time=time.time() - start_time,
             success=False,
-            error="Falha após todas as tentativas"
+            error="Falha após todas as tentativas",
+            context_tokens=0, # Garantir que sejam 0 em caso de falha
+            response_tokens=0  # Garantir que sejam 0 em caso de falha
         )
 
 class LLMManager:
@@ -286,7 +297,9 @@ class MockLLMManager:
             model="mock-codellama",
             tokens_used=50,
             generation_time=0.1,
-            success=True
+            success=True,
+            context_tokens=20, # Valores mock para teste
+            response_tokens=30  # Valores mock para teste
         )
     
     def generate_tests(self, code: str, context: Optional[Dict] = None) -> LLMResponse:
@@ -302,7 +315,9 @@ def test_{code.split("def ")[1].split("(")[0] if "def " in code else "function"}
             model="mock-llama",
             tokens_used=30,
             generation_time=0.1,
-            success=True
+            success=True,
+            context_tokens=10, # Valores mock para teste
+            response_tokens=20  # Valores mock para teste
         )
     
     def generate_documentation(self, code: str, context: Optional[Dict] = None) -> LLMResponse:
@@ -311,7 +326,9 @@ def test_{code.split("def ")[1].split("(")[0] if "def " in code else "function"}
             model="mock-llama",
             tokens_used=20,
             generation_time=0.1,
-            success=True
+            success=True,
+            context_tokens=5, # Valores mock para teste
+            response_tokens=15  # Valores mock para teste
         )
     
     def analyze_patterns(self, data: str, context: Optional[Dict] = None) -> LLMResponse:
@@ -320,7 +337,9 @@ def test_{code.split("def ")[1].split("(")[0] if "def " in code else "function"}
             model="mock-analysis",
             tokens_used=25,
             generation_time=0.1,
-            success=True
+            success=True,
+            context_tokens=10, # Valores mock para teste
+            response_tokens=15  # Valores mock para teste
         )
     
     def get_model_info(self) -> Dict[str, Any]:
