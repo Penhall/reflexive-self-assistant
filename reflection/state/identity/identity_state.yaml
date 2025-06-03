@@ -1,10 +1,23 @@
 CodeAgent:
   predominant_pattern: Implementação funcional
-  last_adaptation: '2025-05-26 21:00:51'
-  consistency_level: Alta
+  last_adaptation: '2025-06-02 19:59:47'
+  consistency_level: Moderada
   traits:
   - Consistente
   - Objetivo
+  total_experiences: 33
+  avg_quality_score: 7.606060606060606
+  discovered_patterns:
+  - name: Padrão de general
+    success_rate: 1.0
+    contexts: &id001
+    - general
+    discovery_date: '2025-06-02T19:59:08.388061'
+  - name: Padrão General
+    success_rate: 1.0
+    contexts: &id002
+    - general
+    discovery_date: '2025-06-02T19:59:08.388278'
 TestAgent:
   predominant_pattern: Execução padrão
   last_adaptation: '2025-05-26 21:00:51'
@@ -12,6 +25,15 @@ TestAgent:
   traits:
   - Consistente
   - Objetivo
+  discovered_patterns:
+  - name: Padrão de general
+    success_rate: 1.0
+    contexts: *id001
+    discovery_date: '2025-06-02T19:59:08.388061'
+  - name: Padrão General
+    success_rate: 1.0
+    contexts: *id002
+    discovery_date: '2025-06-02T19:59:08.388278'
 DocumentationAgent:
   predominant_pattern: Atualização documental
   last_adaptation: '2025-05-26 21:00:51'
@@ -19,3 +41,12 @@ DocumentationAgent:
   traits:
   - Consistente
   - Explicativo
+  discovered_patterns:
+  - name: Padrão de general
+    success_rate: 1.0
+    contexts: *id001
+    discovery_date: '2025-06-02T19:59:08.388061'
+  - name: Padrão General
+    success_rate: 1.0
+    contexts: *id002
+    discovery_date: '2025-06-02T19:59:08.388278'
