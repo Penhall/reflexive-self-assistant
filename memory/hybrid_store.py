@@ -2,6 +2,11 @@
 """
 Sistema de Memória Híbrida - Preserva YAML atual + adiciona GraphRAG
 Estratégia: Compatibilidade total com sistema existente
+
+CORREÇÕES APLICADAS:
+- Threshold de similaridade mais flexível (0.7 → 0.3)
+- Algoritmo de relevância semântica melhorado
+- Score combinado para melhor ranking
 """
 
 import yaml
@@ -234,6 +239,7 @@ class HybridMemoryStore:
     def retrieve_similar_experiences(self, query: str, k: int = 5) -> List[Dict]:
         """
         Busca experiências similares usando tanto YAML quanto GraphRAG
+        CORREÇÃO: Threshold mais flexível e relevância semântica melhorada
         """
         results = []
         
@@ -241,12 +247,12 @@ class HybridMemoryStore:
         yaml_results = self._search_yaml_experiences(query)
         results.extend(yaml_results)
         
-        # 2. Busca no GraphRAG (capacidades avançadas)
+        # 2. Busca no GraphRAG (capacidades avançadas) - CORRIGIDO
         if self.enable_graphrag:
             graph_results = self._search_graphrag_experiences(query, k)
             results.extend(graph_results)
         
-        # 3. Remover duplicatas e ranquear
+        # 3. Remover duplicatas e ranquear - MELHORADO
         unique_results = self._deduplicate_and_rank(results, query)
         
         return unique_results[:k]
@@ -274,7 +280,9 @@ class HybridMemoryStore:
         return results
     
     def _search_graphrag_experiences(self, query: str, k: int) -> List[Dict]:
-        """Busca avançada no GraphRAG"""
+        """
+        CORRIGIDO: Busca avançada no GraphRAG com threshold flexível
+        """
         results = []
         
         try:
@@ -283,7 +291,7 @@ class HybridMemoryStore:
             
             chroma_results = self.experiences_collection.query(
                 query_embeddings=[query_embedding],
-                n_results=k,
+                n_results=k * 2,  # CORREÇÃO: Buscar mais para ter opções
                 include=['documents', 'metadatas', 'distances']
             )
             
@@ -292,23 +300,96 @@ class HybridMemoryStore:
                 chroma_results['metadatas'][0], 
                 chroma_results['distances'][0]
             )):
-                results.append({
-                    "source": "graphrag",
-                    "experience_id": metadata['experience_id'],
-                    "task": metadata['task'],
-                    "code": doc,
-                    "quality": metadata['quality'],
-                    "agent": metadata['agent'],
-                    "similarity": 1.0 - distance  # Convert distance to similarity
-                })
+                similarity = 1.0 - distance
+                
+                # CORREÇÃO: Threshold muito mais flexível (era 0.7, agora 0.3)
+                if similarity > 0.3:
+                    # CORREÇÃO: Adicionar relevância semântica
+                    relevance = self._calculate_relevance(query, metadata.get('task', ''))
+                    combined_score = (similarity * 0.7) + (relevance * 0.3)
+                    
+                    # CORREÇÃO: Usar score combinado para filtragem
+                    if combined_score > 0.3:
+                        results.append({
+                            "source": "graphrag",
+                            "experience_id": metadata['experience_id'],
+                            "task": metadata.get('task', ''),
+                            "code": doc,
+                            "quality": metadata.get('quality', 0),
+                            "agent": metadata.get('agent', ''),
+                            "similarity": similarity,
+                            "relevance": relevance,
+                            "combined_score": combined_score
+                        })
+            
+            # CORREÇÃO: Ordenar por score combinado
+            results.sort(key=lambda x: x.get('combined_score', x.get('similarity', 0)), reverse=True)
                 
         except Exception as e:
             print(f"⚠️ Busca GraphRAG falhou: {e}")
         
         return results
     
+    def _calculate_relevance(self, query: str, task: str) -> float:
+        """
+        CORREÇÃO: Relevância semântica mais robusta
+        """
+        if not query or not task:
+            return 0.0
+        
+        query_lower = query.lower()
+        task_lower = task.lower()
+        
+        # 1. Jaccard similarity (palavras em comum)
+        query_words = set(query_lower.split())
+        task_words = set(task_lower.split())
+        
+        if not query_words or not task_words:
+            return 0.0
+        
+        intersection = len(query_words.intersection(task_words))
+        union = len(query_words.union(task_words))
+        jaccard_score = intersection / union if union > 0 else 0.0
+        
+        # 2. Relevância por domínio semântico
+        domain_score = self._semantic_domain_relevance(query_lower, task_lower)
+        
+        # 3. Score combinado
+        return (jaccard_score * 0.6) + (domain_score * 0.4)
+    
+    def _semantic_domain_relevance(self, query: str, task: str) -> float:
+        """
+        NOVO: Relevância semântica por domínio
+        """
+        # Palavras-chave por domínio
+        domains = {
+            'authentication': ['login', 'senha', 'auth', 'user', 'password', 'autenticar'],
+            'validation': ['validar', 'verificar', 'check', 'valid', 'teste'],
+            'security': ['seguro', 'criptograf', 'hash', 'encrypt', 'proteg'],
+            'data': ['dados', 'database', 'sql', 'store', 'salvar'],
+            'api': ['api', 'endpoint', 'rest', 'http', 'request'],
+            'file': ['arquivo', 'file', 'read', 'write', 'ler'],
+            'math': ['soma', 'calc', 'math', 'numero', 'conta'],
+            'string': ['texto', 'string', 'palavra', 'format']
+        }
+        
+        max_relevance = 0.0
+        
+        for domain, keywords in domains.items():
+            query_matches = sum(1 for kw in keywords if kw in query)
+            task_matches = sum(1 for kw in keywords if kw in task)
+            
+            if query_matches > 0 and task_matches > 0:
+                # Relevância baseada na proporção de matches
+                domain_relevance = min(query_matches, task_matches) / len(keywords)
+                max_relevance = max(max_relevance, domain_relevance)
+        
+        return max_relevance
+    
     def _deduplicate_and_rank(self, results: List[Dict], query: str) -> List[Dict]:
-        """Remove duplicatas e ranqueia por relevância"""
+        """
+        MELHORADO: Remove duplicatas e ranqueia por relevância
+        """
         # Implementação simples - pode ser melhorada
         seen = set()
         unique_results = []
@@ -319,10 +400,12 @@ class HybridMemoryStore:
                 seen.add(key)
                 unique_results.append(result)
         
-        # Ranquear por similaridade
-        return sorted(unique_results, key=lambda x: x.get('similarity', 0), reverse=True)
+        # CORREÇÃO: Ranquear por score combinado ou similaridade
+        return sorted(unique_results, 
+                     key=lambda x: x.get('combined_score', x.get('similarity', 0)), 
+                     reverse=True)
     
-    # Métodos auxiliares
+    # Métodos auxiliares (mantidos inalterados)
     def _load_yaml(self, path: Path) -> Dict:
         try:
             with open(path, 'r', encoding='utf-8') as f:
@@ -392,7 +475,7 @@ class HybridMemoryStore:
             self.neo4j.close()
 
 
-# Exemplo de uso
+# Exemplo de uso (mantido inalterado)
 if __name__ == "__main__":
     # Teste da integração
     memory = HybridMemoryStore(enable_graphrag=True)

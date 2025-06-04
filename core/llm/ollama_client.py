@@ -1,6 +1,6 @@
 """
-Cliente Ollama otimizado para modelos leves
-Integração com o sistema RSCA existente
+Cliente Ollama Melhorado - Versão com Prompts Corrigidos
+Foca em CodeLlama e resolução de problemas de docstrings
 """
 
 import requests
@@ -19,54 +19,61 @@ class LLMResponse:
     generation_time: float
     success: bool
     error: Optional[str] = None
+    context_tokens: int = 0
+    response_tokens: int = 0
 
 class OllamaClient:
-    """Cliente otimizado para modelos leves via Ollama"""
+    """Cliente otimizado para modelos CodeLlama e correção de problemas"""
     
     def __init__(self, host: str = "http://localhost:11434"):
         self.host = host
-        self.timeout = 60  # Timeout mais longo para modelos leves
+        self.timeout = 60
         self.retry_attempts = 2
         
-        # Configurações específicas por modelo
+        # Configurações CORRIGIDAS - CodeLlama como foco
         self.model_configs = {
-            "tinyllama:1.1b": {
-                "temperature": 0.3,
-                "top_p": 0.9,
-                "num_predict": 512,
-                "specialty": "testes_rapidos",
-                "ram_usage": "800MB"
-            },
-            "llama3.2:1b": {
-                "temperature": 0.2,
-                "top_p": 0.85,
-                "num_predict": 1024,
-                "specialty": "tarefas_simples", 
-                "ram_usage": "1GB"
-            },
-            "codegemma:2b": {
-                "temperature": 0.1,
+            "codellama:7b": {
+                "temperature": 0.1,  # Baixa para código mais determinístico
                 "top_p": 0.9,
                 "num_predict": 2048,
-                "specialty": "codigo",
-                "ram_usage": "1.5GB"
+                "specialty": "codigo_python",
+                "ram_usage": "8GB",
+                "quality": "alta"
             },
-            "phi3:mini": {
-                "temperature": 0.15,
+            "codellama:13b": {
+                "temperature": 0.05,  # Muito baixa para código complexo
                 "top_p": 0.85,
-                "num_predict": 1536,
-                "specialty": "equilibrado",
-                "ram_usage": "2GB"
+                "num_predict": 3072,
+                "specialty": "codigo_complexo",
+                "ram_usage": "16GB", 
+                "quality": "muito_alta"
+            },
+            "llama3:8b": {
+                "temperature": 0.2,
+                "top_p": 0.9,
+                "num_predict": 2048,
+                "specialty": "geral_balanceado",
+                "ram_usage": "8GB",
+                "quality": "media_alta"
+            },
+            "qwen2:1.5b": {
+                "temperature": 0.3,
+                "top_p": 0.9,
+                "num_predict": 1024,
+                "specialty": "testes_rapidos",
+                "ram_usage": "2GB",
+                "quality": "baixa",
+                "warning": "Pode gerar código com problemas de sintaxe"
             }
         }
         
-        # Modelo preferencial por tarefa
+        # Modelo preferencial por tarefa - CORRIGIDO
         self.task_models = {
-            "codigo": "codegemma:2b",
-            "testes": "tinyllama:1.1b", 
-            "documentacao": "phi3:mini",
-            "analise": "llama3.2:1b",
-            "geral": "phi3:mini"
+            "codigo": "codellama:7b",       # MUDANÇA CRÍTICA: Era qwen2:1.5b
+            "testes": "codellama:7b",       # MUDANÇA: CodeLlama para testes também
+            "documentacao": "llama3:8b",    # Mantido
+            "analise": "llama3:8b",         # Mantido
+            "geral": "llama3:8b"            # Mantido
         }
     
     def is_available(self) -> bool:
@@ -93,24 +100,34 @@ class OllamaClient:
         available_models = self.list_models()
         
         # Primeiro, tenta o modelo especializado
-        preferred = self.task_models.get(task_type.lower(), "phi3:mini")
+        preferred = self.task_models.get(task_type.lower(), "llama3:8b")
         if preferred in available_models:
             return preferred
         
-        # Fallback para modelos disponíveis em ordem de preferência
-        fallback_order = [
-            "codegemma:2b",    # Melhor para código
-            "phi3:mini",       # Equilibrado
-            "llama3.2:1b",     # Simples mas funcional
-            "tinyllama:1.1b"   # Ultra-leve
-        ]
+        # Fallback inteligente por tipo de tarefa
+        if task_type.lower() in ["codigo", "testes"]:
+            # Para código, priorizar CodeLlama
+            fallback_order = [
+                "codellama:13b",    # Melhor qualidade
+                "codellama:7b",     # Boa qualidade, menos RAM
+                "llama3:8b",        # Geral mas decente
+                "qwen2:1.5b"        # Último recurso (problemático)
+            ]
+        else:
+            # Para outras tarefas, priorizar modelos gerais
+            fallback_order = [
+                "llama3:8b",        # Melhor geral
+                "codellama:7b",     # Pode fazer outras tarefas
+                "codellama:13b",    # Overkill mas funciona
+                "qwen2:1.5b"        # Último recurso
+            ]
         
         for model in fallback_order:
             if model in available_models:
                 return model
         
         # Se nenhum modelo conhecido, usa o primeiro disponível
-        return available_models[0] if available_models else "phi3:mini"
+        return available_models[0] if available_models else "llama3:8b"
     
     def generate(self, model: str, prompt: str, **kwargs) -> LLMResponse:
         """Gera resposta usando modelo especificado"""
@@ -119,7 +136,7 @@ class OllamaClient:
         # Usar configurações otimizadas para o modelo
         model_config = self.model_configs.get(model, {})
         
-        # Preparar payload com configurações otimizadas
+        # Preparar payload com configurações melhoradas
         payload = {
             "model": model,
             "prompt": prompt,
@@ -127,10 +144,18 @@ class OllamaClient:
             "options": {
                 "temperature": model_config.get("temperature", 0.2),
                 "top_p": model_config.get("top_p", 0.9),
-                "num_predict": model_config.get("num_predict", 1024),
-                "num_ctx": 4096,  # Contexto padrão
+                "num_predict": model_config.get("num_predict", 2048),
+                "num_ctx": 4096,
                 "repeat_penalty": 1.1,
-                "stop": ["</s>", "\n\n\n"]  # Stop tokens para evitar repetição
+                # Stop tokens MELHORADOS para evitar problemas
+                "stop": [
+                    "</s>", 
+                    "\n\n\n",           # Evitar repetição excessiva
+                    "```\n\n",          # Parar após blocos de código
+                    "# End of code",    # Parar em comentários de fim
+                    "Human:",           # Evitar continuação de diálogo
+                    "Assistant:"        # Evitar continuação de diálogo
+                ]
             }
         }
         
@@ -149,12 +174,19 @@ class OllamaClient:
                     data = response.json()
                     generation_time = time.time() - start_time
                     
+                    # Extrair métricas de tokens corretamente
+                    context_tokens = data.get("prompt_eval_count", 0)
+                    response_tokens = data.get("eval_count", 0)
+                    total_tokens = context_tokens + response_tokens
+                    
                     return LLMResponse(
                         content=data.get("response", "").strip(),
                         model=model,
-                        tokens_used=data.get("eval_count", 0),
+                        tokens_used=total_tokens,
                         generation_time=generation_time,
-                        success=True
+                        success=True,
+                        context_tokens=context_tokens,
+                        response_tokens=response_tokens
                     )
                 else:
                     error_msg = f"HTTP {response.status_code}: {response.text}"
@@ -174,23 +206,25 @@ class OllamaClient:
             tokens_used=0,
             generation_time=time.time() - start_time,
             success=False,
-            error=error_msg
+            error=error_msg,
+            context_tokens=0,
+            response_tokens=0
         )
     
     def generate_code(self, task: str, context: Optional[Dict] = None) -> LLMResponse:
         """Gera código usando o melhor modelo disponível"""
         model = self.get_best_model_for_task("codigo")
         
-        # Construir prompt otimizado para código
-        prompt = self._build_code_prompt(task, context)
+        # Construir prompt ROBUSTO para código
+        prompt = self._build_robust_code_prompt(task, context)
         
         return self.generate(model, prompt)
     
     def generate_tests(self, code: str, context: Optional[Dict] = None) -> LLMResponse:
-        """Gera testes usando modelo leve e rápido"""
+        """Gera testes usando modelo otimizado"""
         model = self.get_best_model_for_task("testes")
         
-        prompt = self._build_test_prompt(code, context)
+        prompt = self._build_robust_test_prompt(code, context)
         
         return self.generate(model, prompt)
     
@@ -198,71 +232,122 @@ class OllamaClient:
         """Gera documentação usando modelo equilibrado"""
         model = self.get_best_model_for_task("documentacao")
         
-        prompt = self._build_docs_prompt(code, context)
+        prompt = self._build_robust_docs_prompt(code, context)
         
         return self.generate(model, prompt)
     
-    def _build_code_prompt(self, task: str, context: Optional[Dict] = None) -> str:
-        """Constrói prompt otimizado para geração de código"""
-        base_prompt = f"""Você é um assistente de programação especializado em Python.
-
-Tarefa: {task}
-
-Instruções:
-- Escreva código Python limpo e funcional
-- Inclua docstrings simples
-- Use nomes de variáveis descritivos
-- Adicione tratamento de erro básico
-- Mantenha o código conciso mas legível
-
-Responda APENAS com o código Python, sem explicações extras:"""
-
-        if context and "similar_experiences" in context:
-            base_prompt += f"\n\nExemplos similares bem-sucedidos:\n{context['similar_experiences']}"
+    def _build_robust_code_prompt(self, task: str, context: Optional[Dict] = None) -> str:
+        """Constrói prompt ROBUSTO para geração de código - CORREÇÃO PRINCIPAL"""
         
+        # Template base com regras críticas
+        base_prompt = f"""You are an expert Python developer. Write clean, syntactically perfect code.
+
+CRITICAL REQUIREMENTS (MUST FOLLOW):
+1. ALWAYS close docstrings with triple quotes (\"\"\")
+2. NEVER leave docstrings unterminated - this causes syntax errors
+3. Use exactly 4 spaces for indentation
+4. Write complete, executable Python code
+5. Include proper error handling
+6. Follow PEP 8 style guidelines
+
+TASK: {task}
+
+CODE STANDARDS:
+- Include complete docstrings with parameters and return values
+- Add inline comments for complex logic
+- Use descriptive variable and function names
+- Handle edge cases and errors appropriately
+- Write testable, maintainable code"""
+
+        # Adicionar contexto de experiências similares se disponível
+        if context and "similar_experiences" in context:
+            experiences = context["similar_experiences"]
+            if experiences and len(experiences.strip()) > 0:
+                base_prompt += f"\n\nSUCCESSFUL EXAMPLES:\n{experiences}"
+        
+        # Adicionar padrões recomendados se disponível
         if context and "patterns" in context:
-            base_prompt += f"\n\nPadrões recomendados:\n{context['patterns']}"
+            patterns = context["patterns"]
+            if patterns:
+                base_prompt += f"\n\nRECOMMENDED PATTERNS:\n{patterns}"
+        
+        # Instruções finais CRÍTICAS
+        base_prompt += """
+
+OUTPUT INSTRUCTIONS:
+- Respond with ONLY the Python code
+- NO explanations, markdown, or extra text
+- Ensure ALL docstrings are properly closed
+- Make sure the code is syntactically valid
+
+Python code:"""
         
         return base_prompt
     
-    def _build_test_prompt(self, code: str, context: Optional[Dict] = None) -> str:
-        """Constrói prompt para geração de testes"""
-        return f"""Crie testes em Python para este código:
+    def _build_robust_test_prompt(self, code: str, context: Optional[Dict] = None) -> str:
+        """Constrói prompt robusto para geração de testes"""
+        return f"""Generate comprehensive Python unit tests for this code:
 
 ```python
 {code}
 ```
 
-Instruções:
-- Use pytest
-- Teste casos normais e edge cases
-- Nomes de testes descritivos
-- Mantenha simples e direto
+CRITICAL REQUIREMENTS:
+1. ALWAYS close docstrings with triple quotes (\"\"\")
+2. Use pytest framework
+3. Write syntactically correct test code
+4. Include all necessary imports
 
-Responda APENAS com o código de teste:"""
+TEST REQUIREMENTS:
+- Test normal execution paths
+- Test edge cases and boundary conditions
+- Test error conditions with appropriate assertions
+- Use descriptive test function names
+- Include proper test docstrings (FULLY CLOSED)
+- Make tests executable and independent
+
+OUTPUT: Only the test code, no explanations.
+
+Test code:"""
     
-    def _build_docs_prompt(self, code: str, context: Optional[Dict] = None) -> str:
-        """Constrói prompt para documentação"""
-        return f"""Crie documentação para este código Python:
+    def _build_robust_docs_prompt(self, code: str, context: Optional[Dict] = None) -> str:
+        """Constrói prompt robusto para documentação"""
+        return f"""Generate comprehensive documentation for this Python code:
 
 ```python
 {code}
 ```
 
-Instruções:
-- Docstrings no formato Google/Numpy
-- Descreva parâmetros e retorno
-- Adicione exemplo de uso
-- Mantenha conciso mas informativo
+CRITICAL REQUIREMENTS:
+1. ALWAYS close docstrings with triple quotes (\"\"\")
+2. Use proper Python docstring format (Google or NumPy style)
+3. Include complete parameter and return descriptions
 
-Responda APENAS com a documentação:"""
+DOCUMENTATION REQUIREMENTS:
+- Module/class/function docstrings (PROPERLY CLOSED)
+- Parameter descriptions with types
+- Return value descriptions with types
+- Usage examples with expected output
+- Important notes about behavior or limitations
+- Proper formatting and structure
+
+OUTPUT: Only the documentation code, no explanations.
+
+Documentation:"""
     
     def test_model(self, model: str) -> bool:
-        """Testa se um modelo específico funciona"""
+        """Testa se um modelo específico funciona corretamente"""
         try:
-            test_prompt = "def hello():\n    return"
-            response = self.generate(model, f"Complete: {test_prompt}")
-            return response.success and len(response.content.strip()) > 0
+            test_prompt = """Write a simple Python function that returns 'Hello World':
+
+def hello():"""
+            
+            response = self.generate(model, test_prompt)
+            
+            # Verificar se a resposta é válida
+            return (response.success and 
+                    len(response.content.strip()) > 0 and
+                    "def " in response.content)
         except:
             return False
     
@@ -271,11 +356,18 @@ Responda APENAS com a documentação:"""
         models = self.list_models()
         results = {}
         
+        print("🧪 Testando modelos disponíveis...")
         for model in models:
-            print(f"🧪 Testando {model}...")
+            print(f"   Testando {model}...")
             results[model] = self.test_model(model)
             status = "✅" if results[model] else "❌"
-            print(f"   {status} {model}")
+            config = self.model_configs.get(model, {})
+            quality = config.get("quality", "unknown")
+            print(f"   {status} {model} (qualidade: {quality})")
+            
+            # Aviso especial para qwen2
+            if "qwen2" in model and results[model]:
+                print(f"   ⚠️ {model}: {config.get('warning', '')}")
         
         return results
     
@@ -283,27 +375,39 @@ Responda APENAS com a documentação:"""
         """Retorna informações completas do sistema"""
         models_available = self.list_models()
         
+        # Verificar se temos modelos adequados para código
+        code_models = [m for m in models_available if "codellama" in m.lower()]
+        has_good_code_model = len(code_models) > 0
+        
         return {
             "ollama_available": self.is_available(),
             "host": self.host,
             "models_available": models_available,
+            "code_models": code_models,
+            "has_good_code_model": has_good_code_model,
             "recommended_models": self.task_models,
             "model_info": self.model_configs,
-            "total_models": len(models_available)
+            "total_models": len(models_available),
+            "warnings": [
+                "qwen2:1.5b pode gerar código com problemas de sintaxe",
+                "CodeLlama é recomendado para melhor qualidade de código"
+            ] if not has_good_code_model else []
         }
     
     def get_model_stats(self, model: str) -> Dict[str, Any]:
-        """Retorna estatísticas de uso de um modelo específico"""
+        """Retorna estatísticas de um modelo específico"""
         config = self.model_configs.get(model, {})
         
         return {
             "model": model,
             "specialty": config.get("specialty", "unknown"),
+            "quality": config.get("quality", "unknown"),
             "ram_usage": config.get("ram_usage", "unknown"),
             "recommended_tasks": [task for task, rec_model in self.task_models.items() 
                                 if rec_model == model],
             "temperature": config.get("temperature", 0.2),
-            "max_tokens": config.get("num_predict", 1024)
+            "max_tokens": config.get("num_predict", 2048),
+            "warning": config.get("warning", None)
         }
     
     def suggest_model_for_task(self, task_description: str) -> str:
@@ -312,10 +416,22 @@ Responda APENAS com a documentação:"""
         
         # Palavras-chave por tipo de tarefa
         keywords = {
-            "codigo": ["função", "classe", "implementar", "código", "algorithm", "program", "script"],
-            "testes": ["teste", "test", "verificar", "validar", "assert", "unittest"],
-            "documentacao": ["documentar", "explicar", "readme", "doc", "comment", "describe"],
-            "analise": ["analisar", "avaliar", "revisar", "review", "optimize", "refactor"]
+            "codigo": [
+                "função", "classe", "implementar", "código", "algorithm", 
+                "program", "script", "def", "class", "python", "código"
+            ],
+            "testes": [
+                "teste", "test", "verificar", "validar", "assert", 
+                "unittest", "pytest", "testing"
+            ],
+            "documentacao": [
+                "documentar", "explicar", "readme", "doc", "comment", 
+                "describe", "documentation", "manual"
+            ],
+            "analise": [
+                "analisar", "avaliar", "revisar", "review", "optimize", 
+                "refactor", "pattern", "análise"
+            ]
         }
         
         # Contar matches por categoria
@@ -331,7 +447,7 @@ Responda APENAS com a documentação:"""
 ollama_client = OllamaClient()
 
 class LightweightLLMManager:
-    """Manager otimizado para modelos leves"""
+    """Manager otimizado para modelos leves com melhor qualidade"""
     
     def __init__(self):
         self.client = ollama_client
@@ -339,8 +455,8 @@ class LightweightLLMManager:
         self.usage_stats = {}
     
     def generate_code(self, task: str, context: Optional[Dict] = None) -> LLMResponse:
-        """Interface principal para geração de código"""
-        # Selecionar modelo automaticamente
+        """Interface principal para geração de código - CORRIGIDA"""
+        # Selecionar modelo automaticamente (MUDANÇA: CodeLlama primeiro)
         model = self.client.suggest_model_for_task(task)
         self.current_model = model
         
@@ -391,6 +507,10 @@ class LightweightLLMManager:
                 for entry in ops
             ))
         }
+    
+    def get_model_info(self) -> Dict[str, Any]:
+        """Retorna informações do sistema - MÉTODO CRÍTICO"""
+        return self.client.get_system_info()
     
     def is_ready(self) -> bool:
         """Verifica se o sistema está pronto para uso"""

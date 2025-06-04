@@ -17,11 +17,11 @@ DocumentationAgent:
   - Explicativo
   marcos: []
 CodeAgent:
-  ciclos_totais: 199
+  ciclos_totais: 430
   consistencia:
-    Alta: 166
+    Alta: 370
     Moderada: 33
-    Baixa: 0
+    Baixa: 27
   traços_frequentes:
   - Objetivo
   marcos: []

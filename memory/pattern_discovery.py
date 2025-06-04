@@ -2,6 +2,11 @@
 """
 Sistema de Descoberta de Padrões - Identifica padrões emergentes nas experiências
 Integra com sistema simbólico atual para manter compatibilidade
+
+CORREÇÕES APLICADAS:
+- Garantir criação do campo 'symbolic_traits' 
+- Mapeamento robusto de padrões para traits simbólicos
+- Integração simbólica mais completa
 """
 
 import yaml
@@ -78,7 +83,7 @@ class PatternDiscoveryEngine:
         # 6. Atualizar padrões conhecidos
         self._update_pattern_evolution(validated_patterns)
         
-        # 7. Integrar com sistema simbólico atual
+        # 7. Integrar com sistema simbólico atual - CORRIGIDO
         self._integrate_with_symbolic_system(validated_patterns)
         
         self.discovered_patterns = validated_patterns
@@ -425,18 +430,25 @@ class PatternDiscoveryEngine:
             })
     
     def _integrate_with_symbolic_system(self, patterns: List[DiscoveredPattern]):
-        """Integra padrões descobertos com sistema simbólico atual"""
+        """
+        CORRIGIDO: Integra padrões descobertos com sistema simbólico atual
+        Garante criação de symbolic_traits e mapeamento robusto
+        """
         try:
             # Carregar estado simbólico atual
             with open(IDENTITY_STATE, 'r', encoding='utf-8') as f:
                 identity_data = yaml.safe_load(f) or {}
             
-            # Adicionar insights de padrões aos agentes
+            # CORREÇÃO: Adicionar insights de padrões aos agentes
             for agent_name in identity_data.keys():
                 if agent_name not in identity_data:
                     continue
                 
                 agent_data = identity_data[agent_name]
+                
+                # CORREÇÃO: Garantir que symbolic_traits existe SEMPRE
+                if 'symbolic_traits' not in agent_data:
+                    agent_data['symbolic_traits'] = []
                 
                 # Adicionar padrões relevantes
                 relevant_patterns = [
@@ -456,17 +468,25 @@ class PatternDiscoveryEngine:
                             'discovery_date': pattern.discovery_date.isoformat()
                         })
                     
-                    # Atualizar traços baseados em padrões
-                    if 'traits' not in agent_data:
-                        agent_data['traits'] = []
+                    # CORREÇÃO: Mapeamento robusto de padrões para traits simbólicos
+                    new_traits = self._map_patterns_to_traits(relevant_patterns)
                     
-                    if any('quality' in p.contexts for p in relevant_patterns):
-                        if 'Qualidade-Orientado' not in agent_data['traits']:
-                            agent_data['traits'].append('Qualidade-Orientado')
+                    # Adicionar novos traits únicos
+                    existing_traits = set(agent_data.get('traits', []))
+                    existing_symbolic_traits = set(agent_data.get('symbolic_traits', []))
                     
-                    if any('validation' in p.name.lower() for p in relevant_patterns):
-                        if 'Validador' not in agent_data['traits']:
-                            agent_data['traits'].append('Validador')
+                    for trait in new_traits:
+                        # Adicionar a traits normais se não existir
+                        if trait not in existing_traits:
+                            if 'traits' not in agent_data:
+                                agent_data['traits'] = []
+                            agent_data['traits'].append(trait)
+                            existing_traits.add(trait)
+                        
+                        # Adicionar a symbolic_traits se não existir
+                        if trait not in existing_symbolic_traits:
+                            agent_data['symbolic_traits'].append(trait)
+                            existing_symbolic_traits.add(trait)
             
             # Salvar estado atualizado
             with open(IDENTITY_STATE, 'w', encoding='utf-8') as f:
@@ -476,6 +496,65 @@ class PatternDiscoveryEngine:
             
         except Exception as e:
             print(f"⚠️ Erro na integração simbólica: {e}")
+    
+    def _map_patterns_to_traits(self, patterns: List[DiscoveredPattern]) -> List[str]:
+        """
+        NOVO: Mapeia padrões descobertos para traits simbólicos
+        """
+        traits = []
+        
+        for pattern in patterns:
+            pattern_name_lower = pattern.name.lower()
+            pattern_desc_lower = pattern.description.lower()
+            contexts = [ctx.lower() for ctx in pattern.contexts]
+            
+            # Mapeamento baseado no nome do padrão
+            if 'qualidade' in pattern_name_lower or 'quality' in pattern_name_lower:
+                traits.append('Qualidade-Orientado')
+            
+            if 'validação' in pattern_name_lower or 'validation' in pattern_name_lower:
+                traits.append('Validador')
+            
+            if 'segurança' in pattern_name_lower or 'security' in pattern_name_lower:
+                traits.append('Segurança-Consciente')
+            
+            if 'performance' in pattern_name_lower or 'otimização' in pattern_name_lower:
+                traits.append('Performance-Otimizado')
+            
+            # Mapeamento baseado no contexto
+            if 'authentication' in contexts:
+                traits.append('Especialista-Auth')
+            
+            if 'api_development' in contexts:
+                traits.append('API-Developer')
+            
+            if 'database' in contexts:
+                traits.append('Data-Handler')
+            
+            if 'testing' in contexts:
+                traits.append('Test-Driven')
+            
+            # Mapeamento baseado na descrição
+            if 'error' in pattern_desc_lower or 'exception' in pattern_desc_lower:
+                traits.append('Error-Handler')
+            
+            if 'docstring' in pattern_desc_lower or 'documentation' in pattern_desc_lower:
+                traits.append('Documentador')
+            
+            # Mapeamento baseado na taxa de sucesso
+            if pattern.success_rate >= 0.95:
+                traits.append('Altamente-Confiável')
+            elif pattern.success_rate >= 0.85:
+                traits.append('Confiável')
+            
+            # Mapeamento baseado no impacto na qualidade
+            if pattern.quality_impact >= 9.0:
+                traits.append('Excellence-Seeker')
+            elif pattern.quality_impact >= 8.0:
+                traits.append('Quality-Focused')
+        
+        # Remover duplicatas e retornar
+        return list(set(traits))
     
     def _extract_context(self, task: str) -> str:
         """Extrai contexto/domínio da tarefa"""
@@ -580,7 +659,7 @@ class PatternDiscoveryEngine:
         }
 
 
-# Scheduler para execução automática
+# Scheduler para execução automática (mantido inalterado)
 import threading
 import time
 
@@ -625,7 +704,7 @@ class PatternDiscoveryScheduler:
             time.sleep(self.interval_hours * 3600)
 
 
-# Exemplo de uso
+# Exemplo de uso (mantido inalterado)
 if __name__ == "__main__":
     # Inicializar sistema
     memory_store = HybridMemoryStore(enable_graphrag=True)

@@ -18,7 +18,7 @@ from core.agents.code_agent_enhanced import CodeAgentEnhanced
 from memory.hybrid_store import HybridMemoryStore
 from memory.pattern_discovery import PatternDiscoveryEngine
 from config.paths import IDENTITY_STATE, MEMORY_LOG
-from core.llm.llm_manager import MockLLMManager # Adicionado import para MockLLMManager
+from core.llm.llm_manager import MockLLMManager
 
 
 class GraphRAGTestSuite:
@@ -558,8 +558,9 @@ class GraphRAGTestSuite:
             
             # Se estiver usando mock, os valores podem ser 0, mas ainda são "coletados"
             # Se não for mock, os valores devem ser > 0
-            if isinstance(agent.llm, MockLLMManager): # Usar isinstance para verificar se é MockLLMManager
-                metrics_collected = metrics_collected # Apenas verifica se existem
+            if isinstance(agent.llm, MockLLMManager):
+                # Para mocks, apenas verificar se os atributos existem e não são None
+                metrics_collected = metrics_collected
             else:
                 metrics_collected = metrics_collected and \
                                     result.generation_time > 0 and \

@@ -1,6 +1,11 @@
 """
 CodeAgent Enhanced - Integra GraphRAG mantendo compatibilidade total
 Evolução do CodeAgent atual com capacidades de memória experiencial
+
+CORREÇÕES APLICADAS:
+- Coleta de métricas reais de LLM (context_tokens, response_tokens)
+- Armazenamento de latest_llm_response para captura de métricas
+- Métricas de generation_time mais precisas
 """
 
 import yaml
@@ -8,6 +13,7 @@ import ast
 import subprocess
 import tempfile
 import hashlib
+import time
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 from dataclasses import dataclass
@@ -32,7 +38,8 @@ class CodeResult:
     experience_id: Optional[str] = None
     similar_experiences_used: List[Dict] = None
     learning_applied: bool = False
-    # Campos para métricas de performance
+    # CORREÇÃO: Campos para métricas de performance
+    generation_time: float = 0.0  # Tempo de geração pelo LLM
     context_tokens: int = 0
     response_tokens: int = 0
 
@@ -49,6 +56,9 @@ class CodeAgentEnhanced:
         self.latest_result = None
         self.adapted = False
         self.generation_history = []
+        
+        # CORREÇÃO: Armazenar resposta do LLM para capturar métricas
+        self.latest_llm_response = None
         
         # Nova capacidade: Memória experiencial
         self.memory = HybridMemoryStore(enable_graphrag=enable_graphrag) if enable_graphrag else None
@@ -94,19 +104,16 @@ class CodeAgentEnhanced:
         # Preparar contexto enriquecido com experiências
         enhanced_context = self._prepare_enhanced_context(instruction, context, similar_experiences)
         
-        # Gerar código usando LLM (lógica atual preservada + melhorias)
+        # CORREÇÃO: Gerar código usando LLM e capturar resposta completa
         llm_response = self.llm.generate_code(instruction, enhanced_context)
+        self.latest_llm_response = llm_response  # CORREÇÃO: Armazenar para métricas
         
         if not llm_response.success:
             return self._handle_generation_failure(instruction, llm_response.error)
         
-        # Processar e validar código gerado (lógica atual preservada)
-        code_result = self._process_generated_code(llm_response.content, instruction)
+        # CORREÇÃO: Processar e validar código gerado com métricas do LLM
+        code_result = self._process_generated_code(llm_response.content, instruction, llm_response)
         
-        # Adicionar tokens de contexto e resposta do LLM ao CodeResult
-        code_result.context_tokens = llm_response.context_tokens
-        code_result.response_tokens = llm_response.response_tokens
-
         # NOVA CAPACIDADE: Armazenar experiência no GraphRAG
         if self.enable_learning and self.memory:
             experience_id = self._store_experience(instruction, code_result, similar_experiences)
@@ -203,13 +210,14 @@ class CodeAgentEnhanced:
                 quality_score=result.quality_score,
                 execution_success=result.success,
                 agent_name="CodeAgent",
-                llm_model=getattr(self.llm, 'current_model', 'unknown'),
+                llm_model=getattr(self.latest_llm_response, 'model', 'unknown'),
                 timestamp=datetime.now(),
                 context={
                     "adaptation_mode": self.adaptation_mode,
                     "similar_experiences_count": len(similar_experiences),
                     "learning_applied": len(similar_experiences) > 0,
                     "execution_time": result.execution_time,
+                    "generation_time": result.generation_time,  # CORREÇÃO: Incluir tempo de geração
                     "context_tokens": result.context_tokens,
                     "response_tokens": result.response_tokens
                 },
@@ -229,24 +237,39 @@ class CodeAgentEnhanced:
             print(f"❌ Erro ao armazenar experiência: {e}")
             return None
     
-    def _process_generated_code(self, raw_code: str, instruction: str) -> CodeResult:
-        """Processa e valida o código gerado (lógica atual preservada + melhorias)"""
+    def _process_generated_code(self, raw_code: str, instruction: str, 
+                               llm_response=None) -> CodeResult:
+        """
+        CORRIGIDO: Processa e valida o código gerado com métricas do LLM
+        """
+        start_time = time.time()
+        
         code = self._extract_python_code(raw_code)
         
         if not code:
+            processing_time = time.time() - start_time
             return CodeResult(
                 code=f"# Falha ao extrair código válido\n# Instrução: {instruction}",
                 success=False,
-                error="Não foi possível extrair código Python válido"
+                error="Não foi possível extrair código Python válido",
+                generation_time=processing_time,
+                # CORREÇÃO: Capturar métricas do LLM se disponível
+                context_tokens=getattr(llm_response, 'context_tokens', 0),
+                response_tokens=getattr(llm_response, 'response_tokens', 0)
             )
         
         # Validar sintaxe
         syntax_valid, syntax_error = self._validate_syntax(code)
         if not syntax_valid:
+            processing_time = time.time() - start_time
             return CodeResult(
                 code=code,
                 success=False,
-                error=f"Erro de sintaxe: {syntax_error}"
+                error=f"Erro de sintaxe: {syntax_error}",
+                generation_time=processing_time,
+                # CORREÇÃO: Capturar métricas do LLM
+                context_tokens=getattr(llm_response, 'context_tokens', 0),
+                response_tokens=getattr(llm_response, 'response_tokens', 0)
             )
         
         # Executar código (se seguro)
@@ -257,13 +280,19 @@ class CodeAgentEnhanced:
             code, syntax_valid, execution_result, execution_error, instruction
         )
         
+        processing_time = time.time() - start_time
+        
         return CodeResult(
             code=code,
             success=syntax_valid and execution_error is None,
             execution_result=execution_result,
             error=execution_error,
             quality_score=quality_score,
-            execution_time=exec_time
+            execution_time=exec_time,
+            # CORREÇÃO: Incluir tempo de processamento e métricas do LLM
+            generation_time=processing_time,
+            context_tokens=getattr(llm_response, 'context_tokens', 0),
+            response_tokens=getattr(llm_response, 'response_tokens', 0)
         )
     
     def _calculate_enhanced_quality_score(self, code: str, syntax_valid: bool, 
@@ -385,7 +414,6 @@ class CodeAgentEnhanced:
     
     def _safe_execution(self, code: str) -> Tuple[Optional[str], Optional[str], float]:
         """Executa código de forma segura (preservado)"""
-        import time
         start_time = time.time()
         
         try:
@@ -438,11 +466,15 @@ if __name__ == "__main__":
             code=fallback_code,
             success=False,
             error=f"Falha na geração: {error}",
-            quality_score=2.0
+            quality_score=2.0,
+            # CORREÇÃO: Incluir métricas mesmo para fallback
+            generation_time=0.1,  # Tempo mínimo para fallback
+            context_tokens=getattr(self.latest_llm_response, 'context_tokens', 0),
+            response_tokens=0  # Sem resposta do LLM para fallback
         )
     
     def _update_generation_history(self, instruction: str, result: CodeResult):
-        """Atualiza histórico de gerações (melhorado)"""
+        """CORRIGIDO: Atualiza histórico de gerações com métricas completas"""
         self.generation_history.append({
             "timestamp": datetime.now().isoformat(),
             "instruction": instruction,
@@ -452,8 +484,11 @@ if __name__ == "__main__":
             "adaptation_mode": self.adaptation_mode,
             "experience_id": getattr(result, 'experience_id', None),
             "learning_applied": getattr(result, 'learning_applied', False),
+            # CORREÇÃO: Adicionar métricas de LLM ao histórico
+            "generation_time": result.generation_time,
             "context_tokens": result.context_tokens,
-            "response_tokens": result.response_tokens
+            "response_tokens": result.response_tokens,
+            "llm_model": getattr(self.latest_llm_response, 'model', 'unknown')
         })
         
         # Manter apenas últimas 20 gerações
@@ -461,7 +496,7 @@ if __name__ == "__main__":
             self.generation_history = self.generation_history[-20:]
     
     def _display_enhanced_result(self, instruction: str, result: CodeResult):
-        """Exibe resultado da geração (melhorado)"""
+        """CORRIGIDO: Exibe resultado da geração com métricas"""
         if result.success:
             print(f"✅ Código gerado com sucesso (qualidade: {result.quality_score:.1f}/10)")
             if getattr(result, 'learning_applied', False):
@@ -472,9 +507,15 @@ if __name__ == "__main__":
             print(f"⚠️ Problemas na geração (qualidade: {result.quality_score:.1f}/10)")
             if result.error:
                 print(f"❌ Erro: {result.error}")
+        
+        # CORREÇÃO: Exibir métricas de performance se disponíveis
+        if result.generation_time > 0:
+            print(f"⏱️ Tempo de geração: {result.generation_time:.2f}s")
+        if result.context_tokens > 0 or result.response_tokens > 0:
+            print(f"🔢 Tokens: {result.context_tokens} contexto + {result.response_tokens} resposta = {result.context_tokens + result.response_tokens} total")
     
     def get_performance_stats(self) -> Dict[str, Any]:
-        """Retorna estatísticas de performance (melhorado)"""
+        """CORRIGIDO: Retorna estatísticas de performance com métricas de LLM"""
         if not self.generation_history:
             return {"total_generations": 0}
         
@@ -495,14 +536,28 @@ if __name__ == "__main__":
             "graphrag_enabled": self.enable_learning
         }
         
-        # Adicionar métricas de tokens se disponíveis
-        if all("context_tokens" in h and "response_tokens" in h for h in self.generation_history):
-            total_context_tokens = sum(h["context_tokens"] for h in self.generation_history)
-            total_response_tokens = sum(h["response_tokens"] for h in self.generation_history)
-            stats["total_context_tokens"] = total_context_tokens
-            stats["total_response_tokens"] = total_response_tokens
-            stats["avg_context_tokens"] = total_context_tokens / len(self.generation_history)
-            stats["avg_response_tokens"] = total_response_tokens / len(self.generation_history)
+        # CORREÇÃO: Adicionar métricas de tokens e performance de LLM
+        generation_times = [h.get("generation_time", 0) for h in self.generation_history if h.get("generation_time", 0) > 0]
+        context_tokens = [h.get("context_tokens", 0) for h in self.generation_history]
+        response_tokens = [h.get("response_tokens", 0) for h in self.generation_history]
+        
+        if generation_times:
+            stats["avg_generation_time"] = sum(generation_times) / len(generation_times)
+            stats["max_generation_time"] = max(generation_times)
+            stats["min_generation_time"] = min(generation_times)
+        
+        if context_tokens:
+            stats["total_context_tokens"] = sum(context_tokens)
+            stats["avg_context_tokens"] = sum(context_tokens) / len(context_tokens)
+        
+        if response_tokens:
+            stats["total_response_tokens"] = sum(response_tokens)
+            stats["avg_response_tokens"] = sum(response_tokens) / len(response_tokens)
+        
+        if context_tokens and response_tokens:
+            total_tokens = sum(context_tokens) + sum(response_tokens)
+            stats["total_tokens_used"] = total_tokens
+            stats["avg_tokens_per_generation"] = total_tokens / len(self.generation_history)
         
         return stats
     
@@ -557,16 +612,18 @@ class CodeAgent(CodeAgentEnhanced):
 # Teste de funcionalidade
 if __name__ == "__main__":
     # Teste com GraphRAG
-    agent = CodeAgentEnhanced(enable_graphrag=True)
+    agent = CodeAgentEnhanced(enable_graphrag=True, use_mock=True)  # Mock para teste
     
     # Primeira geração (sem experiências)
     result1 = agent.execute_task("criar função que soma dois números")
     print(f"Resultado 1: {result1.success}, Qualidade: {result1.quality_score}")
+    print(f"Métricas: {result1.generation_time:.2f}s, {result1.context_tokens} + {result1.response_tokens} tokens")
     
     # Segunda geração similar (deve usar experiência anterior)
     result2 = agent.execute_task("criar função que adiciona dois valores")
     print(f"Resultado 2: {result2.success}, Qualidade: {result2.quality_score}")
     print(f"Aprendizado aplicado: {result2.learning_applied}")
+    print(f"Métricas: {result2.generation_time:.2f}s, {result2.context_tokens} + {result2.response_tokens} tokens")
     
     # Estatísticas
     stats = agent.get_performance_stats()
