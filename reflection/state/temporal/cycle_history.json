@@ -1,23 +1,23 @@
 {
   "CodeAgent": [
-    "Execução padrão",
-    "Execução padrão",
-    "Execução padrão",
-    "Cobertura de teste",
-    "Execução padrão"
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional",
+    "Implementa\u00e7\u00e3o funcional"
   ],
   "TestAgent": [
-    "Execução padrão",
-    "Execução padrão",
-    "Execução padrão",
-    "Execução padrão",
-    "Execução padrão"
+    "Cobertura de teste",
+    "Cobertura de teste",
+    "Cobertura de teste",
+    "Cobertura de teste",
+    "Cobertura de teste"
   ],
   "DocumentationAgent": [
-    "Atualização documental",
-    "Atualização documental",
-    "Atualização documental",
-    "Atualização documental",
-    "Atualização documental"
+    "Atualiza\u00e7\u00e3o documental",
+    "Atualiza\u00e7\u00e3o documental",
+    "Atualiza\u00e7\u00e3o documental",
+    "Atualiza\u00e7\u00e3o documental",
+    "Atualiza\u00e7\u00e3o documental"
   ]
 }

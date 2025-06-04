@@ -1,19 +1,10 @@
 CodeAgent:
   predominant_pattern: Implementação funcional
-  last_adaptation: '2025-06-04 00:28:33'
+  last_adaptation: '2025-06-04 13:49:40'
   consistency_level: Alta
   traits:
   - Consistente
   - Objetivo
-  - Documentador
-  - Altamente-Confiável
-  - Excellence-Seeker
-  - Error-Handler
-  - Especialista-Auth
-  - Qualidade-Orientado
-  - Quality-Focused
-  - Test-Driven
-  - Confiável
   total_experiences: 397
   avg_quality_score: 9.05170325056975
   discovered_patterns:
@@ -203,21 +194,12 @@ CodeAgent:
   - Test-Driven
   - Confiável
 TestAgent:
-  predominant_pattern: Execução padrão
-  last_adaptation: '2025-05-26 21:00:51'
+  predominant_pattern: Cobertura de teste
+  last_adaptation: '2025-06-04 13:49:40'
   consistency_level: Alta
   traits:
+  - Analítico
   - Consistente
-  - Objetivo
-  - Documentador
-  - Altamente-Confiável
-  - Excellence-Seeker
-  - Error-Handler
-  - Especialista-Auth
-  - Qualidade-Orientado
-  - Quality-Focused
-  - Test-Driven
-  - Confiável
   discovered_patterns:
   - name: Padrão de general
     success_rate: 1.0
@@ -371,20 +353,11 @@ TestAgent:
   - Confiável
 DocumentationAgent:
   predominant_pattern: Atualização documental
-  last_adaptation: '2025-05-26 21:00:51'
+  last_adaptation: '2025-06-04 13:49:40'
   consistency_level: Alta
   traits:
   - Consistente
   - Explicativo
-  - Documentador
-  - Altamente-Confiável
-  - Excellence-Seeker
-  - Error-Handler
-  - Especialista-Auth
-  - Qualidade-Orientado
-  - Quality-Focused
-  - Test-Driven
-  - Confiável
   discovered_patterns:
   - name: Padrão de general
     success_rate: 1.0
