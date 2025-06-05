@@ -6,7 +6,7 @@ Valida se o sistema está aprendendo e melhorando
 import sys
 import time
 import json
-import yaml
+import yaml # Manter para test_symbolic_integration se ainda usar IDENTITY_STATE
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any
@@ -15,9 +15,9 @@ from typing import Dict, List, Any
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from core.agents.code_agent_enhanced import CodeAgentEnhanced
-from memory.hybrid_store import HybridMemoryStore
+from memory.hybrid_store import GraphRAGMemoryStore # Alterado de HybridMemoryStore
 from memory.pattern_discovery import PatternDiscoveryEngine
-from config.paths import IDENTITY_STATE, MEMORY_LOG
+from config.paths import IDENTITY_STATE # Manter se ainda for usado para symbolic_integration
 from core.llm.llm_manager import MockLLMManager
 
 
@@ -41,7 +41,7 @@ class GraphRAGTestSuite:
         
         # Testes básicos de conectividade
         self.test_database_connectivity()
-        self.test_hybrid_storage()
+        self.test_graphrag_storage() # Renomeado de test_hybrid_storage
         
         # Testes de funcionalidade
         self.test_experience_storage()
@@ -53,7 +53,7 @@ class GraphRAGTestSuite:
         self.test_recommendation_system()
         
         # Testes de compatibilidade
-        self.test_yaml_compatibility()
+        # self.test_yaml_compatibility() # Removido
         self.test_symbolic_integration()
         
         # Testes de performance
@@ -71,18 +71,18 @@ class GraphRAGTestSuite:
         print(f"\n🔌 Teste: {test_name}")
         
         try:
-            memory = HybridMemoryStore(enable_graphrag=True)
+            memory = GraphRAGMemoryStore() # Alterado de HybridMemoryStore
             
             # Testar Neo4j
             neo4j_ok = False
-            if memory.enable_graphrag and hasattr(memory, 'neo4j'):
+            if hasattr(memory, 'neo4j'):
                 with memory.neo4j.session() as session:
                     result = session.run("RETURN 'Connected' as status")
                     neo4j_ok = result.single()['status'] == 'Connected'
             
             # Testar ChromaDB
             chroma_ok = False
-            if memory.enable_graphrag and hasattr(memory, 'chroma_client'):
+            if hasattr(memory, 'chroma_client'):
                 collections = memory.chroma_client.list_collections()
                 chroma_ok = True
             
@@ -107,60 +107,47 @@ class GraphRAGTestSuite:
             }
             print(f"   ❌ Erro: {e}")
     
-    def test_hybrid_storage(self):
-        """Testa armazenamento híbrido YAML + GraphRAG"""
-        test_name = "hybrid_storage"
+    def test_graphrag_storage(self): # Renomeado de test_hybrid_storage
+        """Testa armazenamento apenas em GraphRAG"""
+        test_name = "graphrag_storage" # Renomeado
         print(f"\n💾 Teste: {test_name}")
         
         try:
-            memory = HybridMemoryStore(enable_graphrag=True)
+            memory = GraphRAGMemoryStore() # Alterado de HybridMemoryStore
             
             # Criar experiência de teste
             from memory.hybrid_store import CodingExperience
             test_exp = CodingExperience(
-                id="test_hybrid_001",
-                task_description="teste de armazenamento híbrido",
-                code_generated="def test(): return 'hybrid_test'",
+                id="test_graphrag_001", # Alterado
+                task_description="teste de armazenamento graphrag", # Alterado
+                code_generated="def test_graphrag(): return 'graphrag_test'", # Alterado
                 quality_score=8.5,
                 execution_success=True,
                 agent_name="CodeAgent",
                 llm_model="test_model",
                 timestamp=datetime.now(),
-                context={"test": True},
-                yaml_cycle=1
+                context={"test": True}
             )
             
             # Armazenar
             storage_success = memory.store_experience(test_exp)
             
-            # Verificar YAML
-            yaml_updated = False
-            try:
-                with open(IDENTITY_STATE, 'r') as f:
-                    identity_data = yaml.safe_load(f)
-                    yaml_updated = 'CodeAgent' in identity_data
-            except:
-                pass
-            
             # Verificar GraphRAG
             graphrag_stored = False
-            if memory.enable_graphrag:
-                similar = memory.retrieve_similar_experiences("teste", k=1)
-                graphrag_stored = len(similar) > 0
+            similar = memory.retrieve_similar_experiences("teste", k=1)
+            graphrag_stored = len(similar) > 0
             
             memory.close()
             
-            success = storage_success and yaml_updated
+            success = storage_success and graphrag_stored
             self.results["tests"][test_name] = {
                 "success": success,
                 "storage_success": storage_success,
-                "yaml_updated": yaml_updated,
                 "graphrag_stored": graphrag_stored,
-                "message": "✅ Armazenamento híbrido funcional" if success else "❌ Problemas no armazenamento"
+                "message": "✅ Armazenamento GraphRAG funcional" if success else "❌ Problemas no armazenamento GraphRAG"
             }
             
             print(f"   Armazenamento: {'✅' if storage_success else '❌'}")
-            print(f"   YAML atualizado: {'✅' if yaml_updated else '❌'}")
             print(f"   GraphRAG: {'✅' if graphrag_stored else '❌'}")
             
         except Exception as e:
@@ -177,7 +164,7 @@ class GraphRAGTestSuite:
         print(f"\n📚 Teste: {test_name}")
         
         try:
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             # Gerar múltiplas experiências
             test_tasks = [
@@ -230,7 +217,7 @@ class GraphRAGTestSuite:
         print(f"\n🔍 Teste: {test_name}")
         
         try:
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             # Gerar experiências com conteúdo similar
             agent.execute_task("criar função para validar entrada de usuário")
@@ -245,9 +232,9 @@ class GraphRAGTestSuite:
             found_relevant = False
             if len(similar_to_validation) > 0:
                 for exp in similar_to_validation:
-                    if "validação" in exp.get("task_description", "").lower() or \
-                       "login" in exp.get("task_description", "").lower() or \
-                       "cadastro" in exp.get("task_description", "").lower():
+                    if "validação" in exp.get("task", "").lower() or \
+                       "login" in exp.get("task", "").lower() or \
+                       "cadastro" in exp.get("task", "").lower():
                         found_relevant = True
                         break
             
@@ -277,11 +264,11 @@ class GraphRAGTestSuite:
         print(f"\n🧩 Teste: {test_name}")
         
         try:
-            memory = HybridMemoryStore(enable_graphrag=True)
+            memory = GraphRAGMemoryStore() # Alterado de HybridMemoryStore
             discovery_engine = PatternDiscoveryEngine(memory)
             
             # Gerar algumas experiências para que haja padrões a serem descobertos
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             for _ in range(5):
                 agent.execute_task("implementar função de utilidade para strings")
                 agent.execute_task("criar classe de gerenciamento de configurações")
@@ -297,13 +284,9 @@ class GraphRAGTestSuite:
             
             # Verificar se foram integrados ao sistema simbólico (opcional, mas bom verificar)
             symbolic_integrated = False
-            try:
-                with open(IDENTITY_STATE, 'r') as f:
-                    identity_data = yaml.safe_load(f)
-                    if 'patterns' in identity_data.get('CodeAgent', {}):
-                        symbolic_integrated = len(identity_data['CodeAgent']['patterns']) > 0
-            except Exception as e:
-                print(f"   Aviso: Não foi possível verificar integração simbólica: {e}")
+            # A integração simbólica agora é feita diretamente no GraphRAG, não mais via IDENTITY_STATE.yaml
+            # Este teste pode precisar de uma adaptação mais profunda ou ser removido se a verificação for complexa.
+            # Por enquanto, vamos considerar que a descoberta de padrões é suficiente.
             
             memory.close()
             
@@ -312,7 +295,7 @@ class GraphRAGTestSuite:
                 "success": success,
                 "patterns_found": patterns_found,
                 "num_patterns": len(discovered_patterns),
-                "symbolic_integrated": symbolic_integrated,
+                "symbolic_integrated": symbolic_integrated, # Manter como False ou adaptar
                 "message": "✅ Descoberta de padrões funcional" if success else "❌ Descoberta de padrões falhou"
             }
             print(f"   Padrões encontrados: {'✅' if patterns_found else '❌'}")
@@ -337,7 +320,7 @@ class GraphRAGTestSuite:
             # Se use_mock=True, a qualidade será sempre 10.0, então a melhoria será 0.0
             # Para o propósito de testes de integração com mocks, vamos permitir 0 melhoria
             
-            initial_agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            initial_agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             initial_tasks = [
                 "criar função de soma simples",
@@ -352,7 +335,7 @@ class GraphRAGTestSuite:
             initial_avg_quality = sum(initial_qualities) / len(initial_qualities) if initial_qualities else 0
             initial_agent.close()
 
-            learning_agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            learning_agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             learning_tasks = [
                 "criar função de soma com múltiplos argumentos",
@@ -397,7 +380,7 @@ class GraphRAGTestSuite:
         print(f"\n💡 Teste: {test_name}")
         
         try:
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             # Gerar experiências para popular o sistema de recomendação
             agent.execute_task("criar função para sanitizar entrada de texto")
@@ -413,9 +396,9 @@ class GraphRAGTestSuite:
             relevant_recommendations_found = False
             if len(recommendations) > 0:
                 for rec in recommendations:
-                    if "sanitizar" in rec.get("task_description", "").lower() or \
-                       "validação de email" in rec.get("task_description", "").lower() or \
-                       "criptografar" in rec.get("task_description", "").lower():
+                    if "sanitizar" in rec.get("task", "").lower() or \
+                       "validação de email" in rec.get("task", "").lower() or \
+                       "criptografar" in rec.get("task", "").lower():
                         relevant_recommendations_found = True
                         break
             
@@ -439,64 +422,7 @@ class GraphRAGTestSuite:
             }
             print(f"   ❌ Erro: {e}")
 
-    def test_yaml_compatibility(self):
-        """Testa se o sistema YAML atual continua funcionando e sendo atualizado"""
-        test_name = "yaml_compatibility"
-        print(f"\n📝 Teste: {test_name}")
-        
-        try:
-            # Ler estado inicial do YAML
-            initial_identity_data = {}
-            if Path(IDENTITY_STATE).exists():
-                with open(IDENTITY_STATE, 'r') as f:
-                    initial_identity_data = yaml.safe_load(f) or {}
-            
-            initial_memory_data = {}
-            if Path(MEMORY_LOG).exists():
-                with open(MEMORY_LOG, 'r') as f:
-                    initial_memory_data = yaml.safe_load(f) or {}
-
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
-            agent.execute_task("tarefa de teste para compatibilidade YAML")
-            agent.close()
-            
-            # Ler estado final do YAML
-            final_identity_data = {}
-            if Path(IDENTITY_STATE).exists():
-                with open(IDENTITY_STATE, 'r') as f:
-                    final_identity_data = yaml.safe_load(f) or {}
-            
-            final_memory_data = {}
-            if Path(MEMORY_LOG).exists():
-                with open(MEMORY_LOG, 'r') as f:
-                    final_memory_data = yaml.safe_load(f) or {}
-            
-            # Verificar se os arquivos YAML foram modificados
-            identity_modified = initial_identity_data != final_identity_data
-            memory_modified = initial_memory_data != final_memory_data
-            
-            # Verificar se o agente de teste aparece no identity_state
-            agent_in_identity = 'CodeAgent' in final_identity_data
-            
-            success = identity_modified and memory_modified and agent_in_identity
-            self.results["tests"][test_name] = {
-                "success": success,
-                "identity_modified": identity_modified,
-                "memory_modified": memory_modified,
-                "agent_in_identity": agent_in_identity,
-                "message": "✅ Compatibilidade YAML OK" if success else "❌ Problemas de compatibilidade YAML"
-            }
-            print(f"   Identity modificado: {'✅' if identity_modified else '❌'}")
-            print(f"   Memory modificado: {'✅' if memory_modified else '❌'}")
-            print(f"   Agente na identidade: {'✅' if agent_in_identity else '❌'}")
-            
-        except Exception as e:
-            self.results["tests"][test_name] = {
-                "success": False,
-                "error": str(e),
-                "message": f"❌ Erro no teste de compatibilidade YAML: {e}"
-            }
-            print(f"   ❌ Erro: {e}")
+    # Removido test_yaml_compatibility pois o sistema não usa mais YAML para persistência de experiências.
 
     def test_symbolic_integration(self):
         """Testa a integração com o sistema simbólico (ex: atualização de traits)"""
@@ -504,14 +430,17 @@ class GraphRAGTestSuite:
         print(f"\n🧠 Teste: {test_name}")
         
         try:
-            # O teste de pattern_discovery já verifica a integração simbólica
-            # Vamos apenas garantir que o arquivo identity_state.yaml existe e tem a estrutura esperada
+            # A integração simbólica agora é feita diretamente no GraphRAG.
+            # Este teste verifica se o arquivo IDENTITY_STATE.yaml existe e tem a estrutura esperada,
+            # o que pode não ser mais relevante se a identidade for totalmente gerenciada no grafo.
+            # Por enquanto, vamos manter uma verificação básica de existência do arquivo.
             
             identity_exists = Path(IDENTITY_STATE).exists()
             has_symbolic_traits = False
             if identity_exists:
                 with open(IDENTITY_STATE, 'r') as f:
                     identity_data = yaml.safe_load(f) or {}
+                    # Adapte esta verificação se a estrutura do IDENTITY_STATE.yaml mudar
                     if 'CodeAgent' in identity_data and \
                        'symbolic_traits' in identity_data['CodeAgent'] and \
                        len(identity_data['CodeAgent']['symbolic_traits']) > 0:
@@ -541,7 +470,7 @@ class GraphRAGTestSuite:
         print(f"\n⏱️ Teste: {test_name}")
         
         try:
-            agent = CodeAgentEnhanced(use_mock=True, enable_graphrag=True)
+            agent = CodeAgentEnhanced(use_mock=True) # enable_graphrag=True é padrão agora
             
             start_time = time.time()
             result = agent.execute_task("gerar código para um loop for simples")

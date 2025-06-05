@@ -50,7 +50,7 @@ DATABASE_CONFIG = {
     "neo4j": {
         "uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         "username": os.getenv("NEO4J_USERNAME", "neo4j"),
-        "password": os.getenv("NEO4J_PASSWORD", "reflexive123"),
+        "password": os.getenv("NEO4J_PASSWORD", "reflexive123"), # Senha atualizada
         "pool_size": int(os.getenv("NEO4J_POOL_SIZE", "5")),  # Reduzido
         "timeout": int(os.getenv("NEO4J_TIMEOUT", "30"))
     },
@@ -83,7 +83,7 @@ REFLECTION_CONFIG = {
 # ⚡ CONTROLE DE FUNCIONALIDADES LEGADAS
 LEGACY_FEATURES = {
     "enable_analysis_history_md": False,  # ❌ DESABILITADO - usar GraphRAG
-    "enable_yaml_logging": True,          # ✅ Manter compatibilidade YAML
+    "enable_yaml_logging": False,         # ❌ DESABILITADO - não usar mais YAML
     "enable_markdown_exports": False,     # ❌ Economizar I/O
     "verbose_logging": False              # ❌ Reduzir logs para economizar memória
 }
@@ -214,10 +214,6 @@ def validate_config():
     # Verificar configurações de LLM
     if not LLM_CONFIG["ollama"]["host"]:
         errors.append("OLLAMA_HOST não configurado")
-    
-    # Verificar se analysis_history.md está desabilitado
-    if LEGACY_FEATURES["enable_analysis_history_md"]:
-        warnings.append("analysis_history.md ainda habilitado - considere migrar para GraphRAG")
     
     # Verificar configurações de banco
     if not DATABASE_CONFIG["neo4j"]["password"] or DATABASE_CONFIG["neo4j"]["password"] == "password":

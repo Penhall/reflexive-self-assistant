@@ -1,8 +1,8 @@
-# 🏗️ RSCA - Arquitetura Evolutiva Atual (v4.0)
+# 🏗️ RSCA - Arquitetura Evolutiva Atual
 
 ## **Visão Geral**
 
-O Reflexive Self Coding Assistant evoluiu para um sistema baseado em GraphRAG (Graph Retrieval-Augmented Generation), permitindo aprendizado contínuo e evolução de agentes com persistência unificada.
+O Reflexive Self Coding Assistant evoluiu para um sistema híbrido que combina reflexão simbólica tradicional com GraphRAG (Graph Retrieval-Augmented Generation), permitindo aprendizado contínuo e evolução de agentes.
 
 ## **Componentes Principais**
 
@@ -18,21 +18,16 @@ O Reflexive Self Coding Assistant evoluiu para um sistema baseado em GraphRAG (G
 └─────────────────────────────────────────────────────────┘
 ```
 
-### **💾 Sistema de Memória GraphRAG**
+### **💾 Sistema de Memória Híbrida**
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    GraphRAG Memory                      │
-│                                                         │
-│ ┌─────────────┐ ┌─────────────┐ ┌───────────────────┐  │
-│ │   Neo4j     │ │  ChromaDB   │ │ Pattern Discovery │  │
-│ │  (Grafo)    │ │ (Vetores)   │ │    Engine        │  │
-│ └─────────────┘ └─────────────┘ └───────────────────┘  │
-│                                                         │
-│ • Armazenamento unificado de experiências              │
-│ • Busca semântica avançada                             │
-│ • Descoberta automática de padrões                     │
-│ • Versionamento integrado                              │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────┐    ┌─────────────────────────────────┐
+│   YAML Legacy     │    │           GraphRAG              │
+│                   │    │                                 │
+│ • identity_state  │◄──►│ ┌─────────────┐ ┌─────────────┐ │
+│ • memory_log      │    │ │   Neo4j     │ │  ChromaDB   │ │
+│ • cycle_history   │    │ │  (Grafo)    │ │ (Vetores)   │ │
+│ • timeline        │    │ └─────────────┘ └─────────────┘ │
+└───────────────────┘    └─────────────────────────────────┘
 ```
 
 ### **🔍 Descoberta e Evolução**
@@ -42,15 +37,15 @@ O Reflexive Self Coding Assistant evoluiu para um sistema baseado em GraphRAG (G
 ├─────────────────────────────────────────────────────────┤
 │ • Clustering de experiências similares                 │
 │ • Extração automática de padrões de código             │
+│ • Integração com sistema simbólico                     │
 │ • Recomendações contextuais                            │
-│ • Análise de qualidade contínua                        │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
 │              AGENT CHECKPOINT SYSTEM                    │
 ├─────────────────────────────────────────────────────────┤
 │ • Versionamento completo de agentes                    │
-│ • Serialização de experiências no GraphRAG             │
+│ • Serialização de experiências                         │
 │ • Specialização automática                             │
 │ • Compatibility checking                               │
 └─────────────────────────────────────────────────────────┘
@@ -95,12 +90,13 @@ O Reflexive Self Coding Assistant evoluiu para um sistema baseado em GraphRAG (G
 graph TD
     A[Tarefa] --> B[CodeAgentEnhanced]
     B --> C{Buscar Experiências Similares}
-    C -->|GraphRAG| D[Neo4j + ChromaDB]
+    C -->|GraphRAG| D[ChromaDB + Neo4j]
     D --> E[Contexto Enriquecido]
     E --> F[LLM Generation]
     F --> G[Validação e Execução]
-    G --> H[Armazenamento GraphRAG]
-    H --> I[Pattern Discovery]
+    G --> H[Armazenamento Híbrido]
+    H --> I[YAML + GraphRAG]
+    H --> J[Pattern Discovery]
 ```
 
 ### **2. Descoberta de Padrões**
@@ -113,8 +109,9 @@ graph TD
     C --> F[Padrões Emergentes]
     D --> F
     E --> F
-    F --> G[Integração no Grafo]
-    G --> H[Recomendações Contextuais]
+    F --> G[Integração Simbólica]
+    G --> H[identity_state.yaml]
+    G --> I[Recomendações]
 ```
 
 ### **3. Sistema de Checkpoints**
@@ -123,11 +120,13 @@ graph TD
     A[Agente Treinado] --> B[Checkpoint Manager]
     B --> C[Serialização Estado]
     B --> D[Exportação Experiências]
-    C --> E[Grafo de Conhecimento]
-    D --> E
-    E --> F[Repository]
-    F --> G[Carregamento]
-    G --> H[Agente Restaurado]
+    B --> E[Metadata + Config]
+    C --> F[Arquivo .pkl]
+    D --> F
+    E --> F
+    F --> G[Repository]
+    G --> H[Carregamento]
+    H --> I[Agente Restaurado]
 ```
 
 ## **Características Evolutivas**
@@ -150,6 +149,20 @@ graph TD
 - **Performance tracking** de todos os componentes
 - **Alertas automáticos** para degradação
 
+## **Integração com Sistema Legacy**
+
+### **Compatibilidade Total**
+- Sistema YAML original **preservado e expandido**
+- Reflexão simbólica **mantida e melhorada**
+- Interface atual **disponível lado a lado**
+- **Fallback automático** se GraphRAG indisponível
+
+### **Migração Transparente**
+- **Hybrid Memory Store** gerencia ambos os sistemas
+- **ReflectionAgent** atualizado para usar GraphRAG
+- **Dashboard** mostra dados de ambas as fontes
+- **Sem quebra** de funcionalidades existentes
+
 ## **Infraestrutura Técnica**
 
 ### **Containerização**
@@ -166,7 +179,8 @@ services:
 data/
 ├── neo4j/           # Grafo de experiências e padrões
 ├── chromadb/        # Embeddings vetoriais
-└── checkpoints/     # Snapshots de agentes
+├── checkpoints/     # Snapshots de agentes
+└── yaml_states/     # Sistema legado (backup)
 ```
 
 ### **APIs e Interfaces**
@@ -210,7 +224,7 @@ data/
 - **Backup automático** diário dos dados
 - **Point-in-time recovery** do Neo4j
 - **Checkpoints** como snapshots de estado
-- **Replicação** para alta disponibilidade
+- **Fallback** para sistema YAML sempre disponível
 
 ### **Monitoring e Alertas**
 - **Health checks** automáticos de todos os serviços
@@ -222,4 +236,4 @@ data/
 
 ## **Conclusão**
 
-A arquitetura do RSCA v4.0 representa uma evolução significativa para um sistema baseado inteiramente em GraphRAG, com persistência unificada, descoberta de padrões automatizada e evolução contínua dos agentes, mantendo alta performance e confiabilidade.
+A arquitetura evolutiva do RSCA representa uma transição bem-sucedida de um sistema reflexivo simples para uma plataforma de aprendizado contínuo, mantendo compatibilidade total com o sistema original enquanto adiciona capacidades avançadas de GraphRAG, descoberta de padrões e evolução automática de agentes.

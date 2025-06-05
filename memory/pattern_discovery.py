@@ -2,11 +2,6 @@
 """
 Sistema de Descoberta de Padrões - Identifica padrões emergentes nas experiências
 Integra com sistema simbólico atual para manter compatibilidade
-
-CORREÇÕES APLICADAS:
-- Garantir criação do campo 'symbolic_traits' 
-- Mapeamento robusto de padrões para traits simbólicos
-- Integração simbólica mais completa
 """
 
 import yaml
@@ -20,8 +15,8 @@ from sklearn.cluster import DBSCAN
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from memory.hybrid_store import HybridMemoryStore
-from config.paths import SYMBOLIC_TIMELINE, MEMORY_LOG, IDENTITY_STATE
+from memory.hybrid_store import GraphRAGMemoryStore # Alterado de HybridMemoryStore
+from config.paths import IDENTITY_STATE # Removido SYMBOLIC_TIMELINE, MEMORY_LOG
 
 @dataclass
 class DiscoveredPattern:
@@ -44,7 +39,7 @@ class PatternDiscoveryEngine:
     Engine para descoberta automática de padrões de codificação
     """
     
-    def __init__(self, memory_store: HybridMemoryStore):
+    def __init__(self, memory_store: GraphRAGMemoryStore): # Alterado de HybridMemoryStore
         self.memory = memory_store
         self.vectorizer = TfidfVectorizer(
             max_features=1000,
@@ -92,12 +87,12 @@ class PatternDiscoveryEngine:
         return validated_patterns
     
     def _collect_recent_experiences(self, days_ago: int = 30) -> List[Dict]:
-        """Coleta experiências recentes do GraphRAG e sistema YAML"""
+        """Coleta experiências recentes do GraphRAG"""
         experiences = []
         
         try:
             # Experiências do GraphRAG
-            if self.memory.enable_graphrag:
+            if self.memory: # Verificar se a memória está inicializada
                 with self.memory.neo4j.session() as session:
                     result = session.run("""
                         MATCH (e:Experience)-[:GENERATED_CODE]->(c:Code)
@@ -121,49 +116,12 @@ class PatternDiscoveryEngine:
                             'source': 'graphrag'
                         })
             
-            # Experiências do sistema YAML atual (compatibilidade)
-            yaml_experiences = self._extract_yaml_experiences()
-            experiences.extend(yaml_experiences)
-            
         except Exception as e:
-            print(f"⚠️ Erro ao coletar experiências: {e}")
-            # Fallback para sistema YAML apenas
-            experiences = self._extract_yaml_experiences()
+            print(f"⚠️ Erro ao coletar experiências do GraphRAG: {e}")
         
         return experiences
     
-    def _extract_yaml_experiences(self) -> List[Dict]:
-        """Extrai experiências do sistema YAML atual para compatibilidade"""
-        experiences = []
-        
-        try:
-            # Carregar dados YAML atuais
-            with open(MEMORY_LOG, 'r', encoding='utf-8') as f:
-                memory_data = yaml.safe_load(f) or {}
-            
-            with open(SYMBOLIC_TIMELINE, 'r', encoding='utf-8') as f:
-                timeline_data = yaml.safe_load(f) or {}
-            
-            # Converter dados YAML em formato compatível
-            timeline_entries = timeline_data.get('linha_temporal', [])
-            
-            for entry in timeline_entries[-20:]:  # Últimas 20 entradas
-                # Simular experiência baseada nos dados simbólicos
-                experiences.append({
-                    'id': f"yaml_{entry.get('ciclo', 0)}",
-                    'task': entry.get('evento', 'Tarefa desconhecida'),
-                    'code': f"# Código simbólico do ciclo {entry.get('ciclo', 0)}",
-                    'quality': 7.0,  # Assumir qualidade média
-                    'success': True,
-                    'agent': 'CodeAgent',
-                    'timestamp': entry.get('timestamp', datetime.now().isoformat()),
-                    'source': 'yaml_symbolic'
-                })
-                
-        except Exception as e:
-            print(f"⚠️ Erro ao extrair experiências YAML: {e}")
-        
-        return experiences
+    # Removido _extract_yaml_experiences
     
     def _cluster_by_code_similarity(self, experiences: List[Dict]) -> List[DiscoveredPattern]:
         """Agrupa experiências por similaridade de código"""
@@ -707,7 +665,7 @@ class PatternDiscoveryScheduler:
 # Exemplo de uso (mantido inalterado)
 if __name__ == "__main__":
     # Inicializar sistema
-    memory_store = HybridMemoryStore(enable_graphrag=True)
+    memory_store = GraphRAGMemoryStore() # Alterado de HybridMemoryStore
     discovery_engine = PatternDiscoveryEngine(memory_store)
     
     # Descobrir padrões

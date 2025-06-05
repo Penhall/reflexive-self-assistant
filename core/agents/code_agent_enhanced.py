@@ -19,7 +19,7 @@ from typing import Dict, Any, Optional, Tuple, List
 from dataclasses import dataclass
 from datetime import datetime
 
-from memory.hybrid_store import HybridMemoryStore, CodingExperience
+from memory.hybrid_store import GraphRAGMemoryStore, CodingExperience # Alterado de HybridMemoryStore
 from core.llm.llm_manager import llm_manager, MockLLMManager
 from config.paths import IDENTITY_STATE
 from config.settings import PERFORMANCE_CONFIG
@@ -61,7 +61,7 @@ class CodeAgentEnhanced:
         self.latest_llm_response = None
         
         # Nova capacidade: Memória experiencial
-        self.memory = HybridMemoryStore(enable_graphrag=enable_graphrag) if enable_graphrag else None
+        self.memory = GraphRAGMemoryStore() if enable_graphrag else None # Alterado de HybridMemoryStore
         self.enable_learning = enable_graphrag
         
         # Carrega perfil simbólico (compatibilidade)
@@ -183,15 +183,14 @@ class CodeAgentEnhanced:
         formatted = "Experiências similares bem-sucedidas:\n"
         
         for i, exp in enumerate(experiences[:2], 1):  # Máximo 2 para não sobrecarregar prompt
-            if exp.get("source") == "graphrag":
-                formatted += f"{i}. Tarefa: {exp.get('task', 'N/A')}\n"
-                formatted += f"   Qualidade: {exp.get('quality', 0):.1f}/10\n"
-                if exp.get('code'):
-                    # Mostrar apenas primeiras linhas do código
-                    code_preview = '\n'.join(exp['code'].split('\n')[:3])
-                    formatted += f"   Abordagem: {code_preview}...\n"
-            else:
-                formatted += f"{i}. Padrão: {exp.get('pattern', 'N/A')}\n"
+            # O campo 'source' não existe mais na CodingExperience, pois é tudo GraphRAG
+            # O campo 'pattern' também não existe diretamente aqui, é 'task'
+            formatted += f"{i}. Tarefa: {exp.get('task', 'N/A')}\n"
+            formatted += f"   Qualidade: {exp.get('quality', 0):.1f}/10\n"
+            if exp.get('code'):
+                # Mostrar apenas primeiras linhas do código
+                code_preview = '\n'.join(exp['code'].split('\n')[:3])
+                formatted += f"   Abordagem: {code_preview}...\n"
             
             formatted += "\n"
         
@@ -221,7 +220,7 @@ class CodeAgentEnhanced:
                     "context_tokens": result.context_tokens,
                     "response_tokens": result.response_tokens
                 },
-                yaml_cycle=len(self.generation_history) + 1
+                # yaml_cycle=len(self.generation_history) + 1 # Removido, não é mais usado
             )
             
             success = self.memory.store_experience(experience)
