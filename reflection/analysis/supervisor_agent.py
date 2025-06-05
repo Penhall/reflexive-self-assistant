@@ -1,58 +1,113 @@
-import yaml
+"""
+Agente Supervisor: Orquestra a execução dos agentes e a reflexão.
+"""
+
+import logging
+from core.agents.code_agent_enhanced import CodeAgent
+from core.agents.test_agent import TestAgent
+from core.agents.doc_agent import DocumentationAgent
+from core.agents.reflection_agent import ReflectionAgent
+from core.crew.crew_manager import CrewManager
+from config.settings import AGENT_CONFIGS
+from config.paths import LOG_FILE_PATH
 from datetime import datetime
-from collections import Counter
-from config.paths import IDENTITY_STATE, MEMORY_LOG, SUPERVISOR_INSIGHT
+import os
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class SupervisorAgent:
     def __init__(self):
-        self.identity = self.load_yaml(IDENTITY_STATE)
-        self.memory = self.load_yaml(MEMORY_LOG)
-        self.insight = {}
+        self.code_agent = CodeAgent(AGENT_CONFIGS["code_agent"])
+        self.test_agent = TestAgent(AGENT_CONFIGS["test_agent"])
+        self.doc_agent = DocumentationAgent(AGENT_CONFIGS["doc_agent"])
+        self.reflection_agent = ReflectionAgent(AGENT_CONFIGS["reflection_agent"])
+        self.crew_manager = CrewManager()
+        self.log_file = LOG_FILE_PATH
 
-    def load_yaml(self, path):
+    def execute_cycle(self, task_description: str):
+        """
+        Executa um ciclo completo de desenvolvimento e reflexão.
+        """
+        logger.info(f"Iniciando novo ciclo para a tarefa: {task_description}")
+        self._log_cycle_start(task_description)
+
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except FileNotFoundError:
-            return {}
+            # 1. Execução da Crew principal (Code, Test, Doc)
+            logger.info("Iniciando execução da Crew principal...")
+            main_crew_result = self.crew_manager.run_main_crew(
+                task_description,
+                self.code_agent,
+                self.test_agent,
+                self.doc_agent
+            )
+            logger.info(f"Resultado da Crew principal: {main_crew_result}")
 
-    def evaluate_global_state(self):
-        ciclo = max([v.get("ciclos_totais", 0) for v in self.memory.values()], default=0)
-        consistencias = [v.get("consistency_level", "Desconhecido") for v in self.identity.values()]
-        predominant_patterns = [v.get("predominant_pattern", "") for v in self.identity.values()]
-        hints = [v.get("adaptive_hint", "") for v in self.identity.values()]
+            # 2. Reflexão
+            logger.info("Iniciando processo de reflexão...")
+            reflection_result = self.reflection_agent.reflect(
+                task_description,
+                main_crew_result,
+                [self.code_agent, self.test_agent, self.doc_agent]
+            )
+            logger.info(f"Resultado da Reflexão: {reflection_result}")
 
-        insight = {
-            "ciclo": ciclo,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "diagnóstico": None,
-            "recomendação": None
-        }
+            # 3. Adaptação (se necessário)
+            if self.reflection_agent.needs_adaptation(reflection_result):
+                logger.info("Adaptação necessária. Iniciando Crew de Adaptação...")
+                adaptation_result = self.crew_manager.run_adaptation_crew(
+                    reflection_result,
+                    self.code_agent,
+                    self.test_agent,
+                    self.doc_agent,
+                    self.reflection_agent
+                )
+                logger.info(f"Resultado da Adaptação: {adaptation_result}")
+                final_result = adaptation_result
+            else:
+                logger.info("Nenhuma adaptação necessária neste ciclo.")
+                final_result = main_crew_result
 
-        if all("Baixa" == c for c in consistencias):
-            insight["diagnóstico"] = "Todos os agentes estão com consistência simbólica baixa"
-            insight["recomendação"] = "Reavaliar prompts ou lógica base"
-        elif hints.count("⚠️ Sugerido fallback por 2 anomalias consecutivas") >= 2:
-            insight["diagnóstico"] = "Falhas recorrentes em múltiplos agentes"
-            insight["recomendação"] = "Verificar entrada de tarefas ou estado do código base"
-        elif Counter(predominant_patterns).most_common(1)[0][1] == len(predominant_patterns):
-            pattern = predominant_patterns[0]
-            insight["diagnóstico"] = f"Uniformidade simbólica: todos os agentes estão no padrão '{pattern}'"
-            insight["recomendação"] = f"Introduzir variação estratégica nos prompts"
-        else:
-            insight["diagnóstico"] = "Nenhuma anomalia crítica detectada"
-            insight["recomendação"] = "Continuar ciclos normalmente"
+            self._log_cycle_end(final_result)
+            logger.info(f"Ciclo concluído. Resultado final: {final_result}")
+            return final_result
 
-        self.insight = {"insight_global": insight}
-        self.save_insight()
-        self.print_insight()
+        except Exception as e:
+            logger.error(f"Erro durante a execução do ciclo: {e}", exc_info=True)
+            self._log_cycle_end(f"Erro: {e}")
+            raise
 
-    def save_insight(self):
-        with open(SUPERVISOR_INSIGHT, "w", encoding="utf-8") as f:
-            yaml.safe_dump(self.insight, f, sort_keys=False, allow_unicode=True)
+    def _log_cycle_start(self, task_description: str):
+        """Registra o início de um ciclo no arquivo de log."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"--- Ciclo Iniciado: {timestamp} ---\n"
+        log_entry += f"Tarefa: {task_description}\n"
+        self._write_to_log(log_entry)
 
-    def print_insight(self):
-        print("\n📡 [SUPERVISOR] INSIGHT GLOBAL:")
-        print(f"   Ciclo: {self.insight['insight_global']['ciclo']}")
-        print(f"   Diagnóstico: {self.insight['insight_global']['diagnóstico']}")
-        print(f"   Recomendações: {self.insight['insight_global']['recomendação']}")
+    def _log_cycle_end(self, result: str):
+        """Registra o fim de um ciclo no arquivo de log."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"Resultado: {result}\n"
+        log_entry += f"--- Ciclo Concluído: {timestamp} ---\n\n"
+        self._write_to_log(log_entry)
+
+    def _write_to_log(self, content: str):
+        """Escreve conteúdo no arquivo de log."""
+        try:
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(content)
+        except IOError as e:
+            logger.error(f"Não foi possível escrever no arquivo de log {self.log_file}: {e}")
+
+if __name__ == "__main__":
+    # Exemplo de uso
+    supervisor = SupervisorAgent()
+    # Certifique-se de que os caminhos de configuração estão corretos para o ambiente de teste
+    # Ex: AGENT_CONFIGS pode precisar ser mockado ou configurado para um ambiente de teste
+    # Para um teste real, você precisaria de um LLM configurado e acessível.
+    
+    # Exemplo de tarefa
+    test_task = "Desenvolver uma função Python para calcular o fatorial de um número."
+    # supervisor.execute_cycle(test_task)
+    print(f"SupervisorAgent inicializado. Para executar, chame supervisor.execute_cycle('{test_task}')")

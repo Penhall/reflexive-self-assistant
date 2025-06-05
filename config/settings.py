@@ -50,7 +50,7 @@ DATABASE_CONFIG = {
     "neo4j": {
         "uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         "username": os.getenv("NEO4J_USERNAME", "neo4j"),
-        "password": os.getenv("NEO4J_PASSWORD", "reflexive123"), # Senha atualizada
+        "password": os.getenv("NEO4J_PASSWORD", "rsca_secure_2025"), # Senha atualizada para corresponder ao docker-compose.yml
         "pool_size": int(os.getenv("NEO4J_POOL_SIZE", "5")),  # Reduzido
         "timeout": int(os.getenv("NEO4J_TIMEOUT", "30"))
     },
@@ -259,7 +259,11 @@ def ensure_directories():
     essential_paths = [
         PATH_CONFIG["data"],
         PATH_CONFIG["logs"],
-        PATH_CONFIG["checkpoints"]
+        PATH_CONFIG["exports"],
+        PATH_CONFIG["temp"],
+        PATH_CONFIG["checkpoints"],
+        PATH_CONFIG["experiences"],
+        PATH_CONFIG["patterns"]
     ]
     
     for path in essential_paths:

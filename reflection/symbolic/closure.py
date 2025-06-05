@@ -1,88 +1,145 @@
+"""
+Módulo para gerenciar o fechamento de ciclos de reflexão e a consolidação de aprendizados.
+"""
+
+import logging
 import yaml
 from datetime import datetime
-import config.paths
+import os
+from config.paths import CLOSURE_LOG_PATH, SYMBOLIC_IMPACT_LOG_PATH
 
-FILES = {
-    "timeline": "reflection/symbolic_timeline.yaml",
-    "emotion": str(config.paths.EMOTIONAL_STATE),
-    "identity": str(config.paths.IDENTITY_STATE),
-    "impact": "reflection/symbolic_impact_log.yaml",
-    "contradictions": "reflection/symbolic_contradictions.yaml",
-    "output_yaml": "reflection/symbolic_legacy.yaml",
-    "output_md": "reflection/symbolic_legacy.md"
-}
+logger = logging.getLogger(__name__)
 
-class SymbolicClosure:
+class ClosureManager:
     def __init__(self):
-        self.timeline = self.load(FILES["timeline"]).get("linha_temporal", [])
-        self.emotion = self.load(FILES["emotion"]).get("emotional_state", {})
-        self.identity = self.load(FILES["identity"], flat=True)
-        self.impact = self.load(FILES["impact"]).get("impacto_simbólico", {})
-        self.contradictions = self.load(FILES["contradictions"]).get("contradições_simbólicas", [])
-        self.result = {}
+        self.closure_log_file = CLOSURE_LOG_PATH
+        self.symbolic_impact_log_file = SYMBOLIC_IMPACT_LOG_PATH
+        self._ensure_files_exist()
 
-    def load(self, path, flat=False):
+    def _ensure_files_exist(self):
+        """Garante que os arquivos de log existam."""
+        if not os.path.exists(self.closure_log_file):
+            with open(self.closure_log_file, 'w', encoding='utf-8') as f:
+                yaml.safe_dump({"closures": []}, f)
+        if not os.path.exists(self.symbolic_impact_log_file):
+            with open(self.symbolic_impact_log_file, 'w', encoding='utf-8') as f:
+                yaml.safe_dump({"impacts": []}, f)
+
+    def record_closure(self, cycle_id: str, summary: str, key_learnings: list, recommendations: list):
+        """
+        Registra o fechamento de um ciclo de reflexão.
+        """
+        closure_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "cycle_id": cycle_id,
+            "summary": summary,
+            "key_learnings": key_learnings,
+            "recommendations": recommendations
+        }
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
-                return data if not flat else self.flatten(data)
-        except:
-            return {}
+            with open(self.closure_log_file, 'r+', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                if data is None:
+                    data = {"closures": []}
+                data["closures"].append(closure_entry)
+                f.seek(0)
+                yaml.safe_dump(data, f, indent=2, sort_keys=False, allow_unicode=True)
+            logger.info(f"Fechamento do ciclo {cycle_id} registrado com sucesso.")
+        except Exception as e:
+            logger.error(f"Erro ao registrar fechamento do ciclo {cycle_id}: {e}")
 
-    def flatten(self, d):
-        if not d or not isinstance(d, dict):
-            return {}
-        return {str(k).lower(): v for k, v in d.items()}
+    def record_symbolic_impact(self, agent_name: str, symbolic_change: str, impact_description: str, timestamp: str = None):
+        """
+        Registra o impacto de uma mudança simbólica na identidade do agente.
+        """
+        if timestamp is None:
+            timestamp = datetime.now().isoformat()
 
-    def summarize(self, cycles_completed=None):
-        ciclos = len(self.timeline)
-        emo = self.emotion.get("status", "neutro")
-        ident = max(self.identity.items(),
-                   key=lambda kv: self.impact.get(str(kv[1]).lower() if kv[1] else "", 0))[1]
-        superado = "funcionalidade" if "funcionalidade" in self.impact and self.impact["funcionalidade"] <= 0 else None
-        contrad = len(self.contradictions)
+        impact_entry = {
+            "timestamp": timestamp,
+            "agent_name": agent_name,
+            "symbolic_change": symbolic_change,
+            "impact_description": impact_description
+        }
+        try:
+            with open(self.symbolic_impact_log_file, 'r+', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                if data is None:
+                    data = {"impacts": []}
+                data["impacts"].append(impact_entry)
+                f.seek(0)
+                yaml.safe_dump(data, f, indent=2, sort_keys=False, allow_unicode=True)
+            logger.info(f"Impacto simbólico para {agent_name} registrado com sucesso.")
+        except Exception as e:
+            logger.error(f"Erro ao registrar impacto simbólico para {agent_name}: {e}")
 
-        narrativa = (
-            f"Ao longo de {ciclos} ciclos, construí um padrão de identidade baseado em '{ident}', com emoções "
-            f"predominantes como '{emo}'. Aprendi com contradições ({contrad}) e abandonei padrões como "
-            f"'{superado}'." if superado else
-            f"Ao longo de {ciclos} ciclos, estabilizei o padrão '{ident}' com consistência e adaptação simbólica."
+    def get_all_closures(self):
+        """
+        Retorna todos os registros de fechamento.
+        """
+        try:
+            with open(self.closure_log_file, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                return data.get("closures", []) if data else []
+        except FileNotFoundError:
+            return []
+        except Exception as e:
+            logger.error(f"Erro ao carregar registros de fechamento: {e}")
+            return []
+
+    def get_all_symbolic_impacts(self):
+        """
+        Retorna todos os registros de impacto simbólico.
+        """
+        try:
+            with open(self.symbolic_impact_log_file, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                return data.get("impacts", []) if data else []
+        except FileNotFoundError:
+            return []
+        except Exception as e:
+            logger.error(f"Erro ao carregar registros de impacto simbólico: {e}")
+            return []
+
+# Exemplo de uso
+if __name__ == "__main__":
+    # Define caminhos temporários para teste
+    temp_closure_log = "temp_closure_log.yaml"
+    temp_symbolic_impact_log = "temp_symbolic_impact_log.yaml"
+
+    # Sobrescreve os caminhos no config.paths para o teste
+    from unittest.mock import patch
+    with patch('config.paths.CLOSURE_LOG_PATH', temp_closure_log), \
+         patch('config.paths.SYMBOLIC_IMPACT_LOG_PATH', temp_symbolic_impact_log):
+        
+        manager = ClosureManager()
+
+        # Teste de registro de fechamento
+        manager.record_closure(
+            cycle_id="cycle-001",
+            summary="Implementação da função de fatorial concluída.",
+            key_learnings=["Melhoria na detecção de padrões de código.", "Aumento da eficiência do TestAgent."],
+            recommendations=["Explorar otimização de prompts para CodeAgent."]
         )
 
-        self.result = {
-            "legado_simbólico": {
-                "identidade_final": ident,
-                "emoção_final": emo,
-                "ciclos_concluídos": ciclos,
-                "padrão_superado": superado,
-                "contradições_corrigidas": contrad,
-                "narrativa": narrativa,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-        }
+        # Teste de registro de impacto simbólico
+        manager.record_symbolic_impact(
+            agent_name="CodeAgent",
+            symbolic_change="Padrão predominante: 'Funcional'",
+            impact_description="Agente focado em implementação direta de funcionalidades."
+        )
 
-        self.save()
+        # Teste de recuperação de registros
+        print("\nRegistros de Fechamento:")
+        closures = manager.get_all_closures()
+        print(yaml.dump(closures, indent=2, sort_keys=False, allow_unicode=True))
 
-    def save(self):
-        with open(FILES["output_yaml"], "w", encoding="utf-8") as f:
-            yaml.safe_dump(self.result, f, allow_unicode=True)
+        print("\nRegistros de Impacto Simbólico:")
+        impacts = manager.get_all_symbolic_impacts()
+        print(yaml.dump(impacts, indent=2, sort_keys=False, allow_unicode=True))
 
-        with open(FILES["output_md"], "w", encoding="utf-8") as f:
-            legado = self.result["legado_simbólico"]
-            f.write(f"# 🏁 Encerramento Simbólico do Sistema\n")
-            f.write(f"**Ciclos concluídos:** {legado['ciclos_concluídos']}\n")
-            f.write(f"**Identidade final:** {legado['identidade_final']}\n")
-            f.write(f"**Emoção predominante:** {legado['emoção_final']}\n")
-            f.write(f"**Padrão superado:** {legado['padrão_superado'] or 'Nenhum'}\n")
-            f.write(f"**Contradições corrigidas:** {legado['contradições_corrigidas']}\n\n")
-            f.write(f"### 🧠 Legado narrativo\n")
-            f.write(f"{legado['narrativa']}\n")
-
-        self.print_summary()
-
-    def print_summary(self):
-        print("\n🏁 [ENCERRAMENTO SIMBÓLICO]")
-        for k, v in self.result["legado_simbólico"].items():
-            if k != "narrativa":
-                print(f"🔹 {k.replace('_', ' ').capitalize()}: {v}")
-        print(f"📘 Legado: “{self.result['legado_simbólico']['narrativa']}”")
+    # Limpeza dos arquivos temporários
+    if os.path.exists(temp_closure_log):
+        os.remove(temp_closure_log)
+    if os.path.exists(temp_symbolic_impact_log):
+        os.remove(temp_symbolic_impact_log)

@@ -17,9 +17,12 @@ class RSCASystemTest:
     def __init__(self):
         self.results = {}
         self.start_time = time.time()
+        # Definir modelos a serem usados nos testes
+        self.ollama_code_model = "deepseek-r1:1.5b"
+        self.ollama_general_model = "qwen2:1.5b"
     
     def test_ollama_connection(self):
-        """Testa conexão com Ollama"""
+        """Testa conexão com Ollama e verifica se os modelos necessários estão presentes."""
         print("🔗 Testando conexão Ollama...")
         
         try:
@@ -28,11 +31,21 @@ class RSCASystemTest:
                 models_data = response.json().get("models", [])
                 model_names = [m["name"] for m in models_data]
                 
-                print(f"✅ Ollama funcionando! {len(model_names)} modelos:")
+                print(f"✅ Ollama funcionando! Modelos disponíveis: {len(model_names)}")
                 for model in model_names:
                     print(f"   • {model}")
                 
-                return True, model_names
+                # Verificar se os modelos específicos estão presentes
+                has_code_model = any(m.startswith(self.ollama_code_model.split(':')[0]) for m in model_names)
+                has_general_model = any(m.startswith(self.ollama_general_model.split(':')[0]) for m in model_names)
+
+                if has_code_model and has_general_model:
+                    print(f"✅ Modelos '{self.ollama_code_model}' e '{self.ollama_general_model}' encontrados.")
+                    return True, model_names
+                else:
+                    print(f"❌ Modelos '{self.ollama_code_model}' ou '{self.ollama_general_model}' não encontrados.")
+                    return False, model_names
+                
             else:
                 print(f"❌ Ollama retornou status {response.status_code}")
                 return False, []
@@ -41,21 +54,13 @@ class RSCASystemTest:
             print(f"❌ Erro na conexão: {e}")
             return False, []
     
-    def test_ollama_generation(self, models):
-        """Testa geração com Ollama"""
-        print("\n🤖 Testando geração de código...")
-        
-        if not models:
-            print("❌ Nenhum modelo disponível")
-            return False
-        
-        # Usar primeiro modelo disponível
-        model = models[0]
-        print(f"📝 Usando modelo: {model}")
+    def test_ollama_generation(self, model_to_use):
+        """Testa geração com Ollama usando um modelo específico."""
+        print(f"\n🤖 Testando geração de código com modelo: {model_to_use}...")
         
         try:
             payload = {
-                "model": model,
+                "model": model_to_use,
                 "prompt": "def calculate_sum(a, b): return",
                 "stream": False,
                 "options": {
@@ -85,7 +90,7 @@ class RSCASystemTest:
                     print("⚠️ Resposta vazia")
                     return False
             else:
-                print(f"❌ Erro HTTP {response.status_code}")
+                print(f"❌ Erro HTTP {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
@@ -93,13 +98,14 @@ class RSCASystemTest:
             return False
     
     def test_code_agent(self):
-        """Testa CodeAgent"""
+        """Testa CodeAgent."""
         print("\n🛠️ Testando CodeAgent...")
         
         try:
             from core.agents.code_agent import CodeAgent
             
-            # Criar agente
+            # Criar agente, garantindo que use o modelo correto
+            # O CodeAgent deve pegar o modelo de config.settings.py
             agent = CodeAgent(use_mock=False)
             
             # Tarefa simples
@@ -131,7 +137,7 @@ class RSCASystemTest:
             return False
     
     def test_pipeline(self):
-        """Testa pipeline completo"""
+        """Testa pipeline completo."""
         print("\n🔄 Testando pipeline Code->Test->Doc...")
         
         try:
@@ -189,7 +195,7 @@ class RSCASystemTest:
             return False
     
     def test_reflection_system(self):
-        """Testa sistema de reflexão"""
+        """Testa sistema de reflexão."""
         print("\n🧠 Testando sistema de reflexão...")
         
         try:
@@ -234,7 +240,7 @@ class RSCASystemTest:
             return False
     
     def test_memory_system(self):
-        """Testa sistema de memória"""
+        """Testa sistema de memória."""
         print("\n💾 Testando sistema de memória...")
         
         try:
@@ -273,11 +279,14 @@ class RSCASystemTest:
             return False
     
     def test_llm_manager(self):
-        """Testa o LLM Manager"""
+        """Testa o LLM Manager."""
         print("\n🧠 Testando LLM Manager...")
         
         try:
-            from core.llm.ollama_client import llm_manager
+            from core.llm.llm_manager import LLMManager
+            
+            # Instanciar LLMManager para usar as configurações de settings.py
+            llm_manager = LLMManager()
             
             # Testar informações dos modelos
             model_info = llm_manager.get_model_info()
@@ -287,6 +296,7 @@ class RSCASystemTest:
             # Testar geração se Ollama estiver disponível
             if model_info.get('ollama_available', False):
                 print("🔥 Testando geração via LLM Manager...")
+                # Usar o modelo de código configurado
                 response = llm_manager.generate_code("def hello_world():")
                 
                 if response.success:
@@ -310,7 +320,7 @@ class RSCASystemTest:
             return False
     
     def test_dashboard_files(self):
-        """Testa se arquivos do dashboard existem"""
+        """Testa se arquivos do dashboard existem."""
         print("\n📊 Verificando arquivos do dashboard...")
         
         dashboard_files = [
@@ -336,7 +346,7 @@ class RSCASystemTest:
             return False
     
     def run_all_tests(self):
-        """Executa todos os testes"""
+        """Executa todos os testes."""
         print("🚀 INICIANDO TESTE COMPLETO DO SISTEMA RSCA")
         print("=" * 60)
         
@@ -362,7 +372,8 @@ class RSCASystemTest:
                     ollama_models = models
                     results[test_name] = success
                 elif test_name == "Geração Ollama" and ollama_models:
-                    results[test_name] = self.test_ollama_generation(ollama_models)
+                    # Este teste agora usa um modelo específico
+                    results[test_name] = self.test_ollama_generation(self.ollama_code_model)
                 else:
                     results[test_name] = test_func()
                     
@@ -373,7 +384,7 @@ class RSCASystemTest:
         # Adicionar teste de geração se Ollama estiver funcionando
         if results.get("Conexão Ollama", False) and ollama_models:
             print(f"\n{'='*20} Geração Ollama {'='*20}")
-            results["Geração Ollama"] = self.test_ollama_generation(ollama_models)
+            results["Geração Ollama"] = self.test_ollama_generation(self.ollama_code_model)
         
         # Relatório final
         self.print_final_report(results)
@@ -381,7 +392,7 @@ class RSCASystemTest:
         return results
     
     def print_final_report(self, results):
-        """Imprime relatório final"""
+        """Imprime relatório final."""
         execution_time = time.time() - self.start_time
         
         print("\n" + "="*60)
@@ -430,7 +441,7 @@ class RSCASystemTest:
         self.save_test_report(results, execution_time)
     
     def save_test_report(self, results, execution_time):
-        """Salva relatório em arquivo"""
+        """Salva relatório em arquivo."""
         try:
             report_dir = Path("logs")
             report_dir.mkdir(exist_ok=True)
@@ -440,7 +451,7 @@ class RSCASystemTest:
             with open(report_file, 'w', encoding='utf-8') as f:
                 f.write(f"# Relatório de Testes RSCA - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
                 f.write(f"**Tempo de execução:** {execution_time:.2f}s\n")
-                f.write(f"**Testes passaram:** {sum(results.values())}/{len(results)}\n\n")
+                f.write(f"**Testes passaram:** {sum(1 for v in results.values() if v)}/{len(results)}\n\n")
                 
                 f.write("## Resultados por Teste\n\n")
                 for test_name, success in results.items():
@@ -458,7 +469,7 @@ class RSCASystemTest:
 
 
 def main():
-    """Função principal"""
+    """Função principal."""
     print(f"🔬 Teste do Sistema RSCA")
     print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"🐍 Python {sys.version.split()[0]}")
@@ -468,7 +479,7 @@ def main():
     results = tester.run_all_tests()
     
     # Código de saída baseado no sucesso
-    success_rate = sum(results.values()) / len(results) if results else 0
+    success_rate = sum(1 for v in results.values() if v) / len(results) if results else 0
     exit_code = 0 if success_rate >= 0.8 else 1
     
     sys.exit(exit_code)
